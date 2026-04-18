@@ -1,5 +1,5 @@
 from .models import User
-from serializers import UserSerializer
+from .serializers import UserSerializer
 
 
 def get_user_list():
