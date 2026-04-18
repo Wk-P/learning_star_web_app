@@ -44,3 +44,6 @@ __screenshots__/
 db.sqlite3
 
 *.pyc
+
+
+.claude/
