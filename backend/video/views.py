@@ -21,4 +21,7 @@ class VideoDetailView(APIView):
     def get(self, request: Request):
         pk = request.query_params.get('id')
         data = get_video(pk=pk)
-        return Response(data=data, status=status.HTTP_200_OK)
+        if data:
+            return Response(data=data, status=status.HTTP_200_OK)
+        else:
+            return Response(data=None, status=status.HTTP_404_NOT_FOUND)

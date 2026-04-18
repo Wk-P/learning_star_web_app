@@ -2,7 +2,7 @@ asgiref==3.11.1
 django==6.0.4
 django-cors-headers==4.9.0
 djangorestframework==3.17.1
-djangorestframework-jwt==1.11.0
+djangorestframework-simplejwt==5.5.1
 pyjwt==1.7.1
 python-dotenv==1.2.2
 sqlparse==0.5.5

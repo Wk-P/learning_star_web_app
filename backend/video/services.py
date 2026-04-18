@@ -28,7 +28,7 @@ def get_video(pk: int):
     try:
         video = Video.objects.get(id=pk)
     except Video.DoesNotExist:
-        return { "message": "Not found required video.", "status": "Failed", "code": 404 }
+        return None
 
     data = VideoSerializer(video).data
 
