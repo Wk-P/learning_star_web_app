@@ -16,9 +16,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <nav>
-          <RouterLink :to="{ name: 'home'}">回首页</RouterLink>
-        </nav>
+          <RouterLink :to="{ name: 'home'}" class="link">回首页</RouterLink>
       </template>
     </el-card>
   </div>
@@ -64,5 +62,18 @@ async function submit() {
 }
 .login-card {
   width: 380px;
+}
+
+.link {
+  width: 100%;
+  display: block;
+  color: #555;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+.link:hover {
+  color: #3eff;
 }
 </style>

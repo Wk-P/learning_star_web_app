@@ -45,6 +45,11 @@ const router = createRouter({
           path: 'video',
           name: 'user-video',
           component: () => import('@/views/user/UserVideoView.vue')
+        },
+        {
+          path: 'audio',
+          name: 'user-audio',
+          component: () => import('@/views/user/UserAudioView.vue')
         }
       ]
     }
