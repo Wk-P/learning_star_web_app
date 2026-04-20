@@ -12,4 +12,12 @@ body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  margin: 1rem;
 }
+
+:root {
+  --btn-color: #e0faf5;
+  --btn-background-color: #2ec4b6;
+}
+
+
