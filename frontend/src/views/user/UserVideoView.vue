@@ -1,5 +1,5 @@
 <template>
-  <div class="user-video">
+  <div class="user video">
 
     <!-- 面包屑：currentPath 有内容才显示 -->
     <nav v-if="currentPath.length > 0">
@@ -79,6 +79,9 @@ const currentVideos = computed(() => {
 </script>
 
 <style scoped>
+ul {
+  list-style: none;
+}
 nav button,
 ul button {
   background: none;

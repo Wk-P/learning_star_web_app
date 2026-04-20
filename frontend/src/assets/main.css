@@ -1,2 +1,6 @@
 @import './base.css';
 
+.user {
+  margin: 1rem;
+  width: 100%;
+}
