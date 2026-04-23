@@ -37,6 +37,8 @@ const cards = ref([
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-radius: 2rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
   padding: 0.5rem;
   border: 1px solid var(--glass-border);
 }
