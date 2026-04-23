@@ -1,31 +1,33 @@
 <template>
   <div class="user audio">
 
-    <!-- 面包屑：currentPath 有内容才显示 -->
-    <nav v-if="currentPath.length > 0">
-      <!-- 点击「根目录」回到最顶层 -->
-      <button @click="currentPath = []">全部</button>
-      <template v-for="(segment, i) in currentPath" :key="i">
-        <span> / </span>
-        <!-- 点击某一级，截断到那一级（退回去） -->
-        <button @click="currentPath = currentPath.slice(0, i + 1)">{{ segment }}</button>
-      </template>
-    </nav>
+    <Transition name="nav-fade">
+      <nav v-if="currentPath.length > 0">
+        <button @click="currentPath = []">全部</button>
+        <TransitionGroup name="crumb" tag="span" class="crumb-group">
+          <span class="crumb-item" v-for="(segment, i) in currentPath" :key="segment">
+            <span class="sep">/</span>
+            <button @click="currentPath = currentPath.slice(0, i + 1)">{{ segment }}</button>
+          </span>
+        </TransitionGroup>
+      </nav>
+    </Transition>
 
-    <!-- 当前层级的子分类（还没到叶子节点时显示） -->
-    <ul v-if="subCategories.length > 0">
-      <li v-for="category in subCategories" :key="category">
-        <!-- 点击分类，往 currentPath 里加一级 -->
-        <button @click="currentPath = [...currentPath, category]">{{ category }}</button>
-      </li>
-    </ul>
+    <Transition name="content" mode="out-in">
+      <ul v-if="subCategories.length > 0" :key="'cat-' + currentPath.join('/')">
+        <li v-for="category in subCategories" :key="category">
+          <button @click="currentPath = [...currentPath, category]">{{ category }}</button>
+        </li>
+      </ul>
+    </Transition>
 
-    <!-- 当前路径下的音频（已经钻到叶子节点时显示） -->
-    <ul v-if="currentAudios.length > 0">
-      <li v-for="audio in currentAudios" :key="audio.url">
-        <a :href="audio.url">{{ audio.title }}</a>
-      </li>
-    </ul>
+    <Transition name="content" mode="out-in">
+      <ul v-if="currentAudios.length > 0" :key="'aud-' + currentPath.join('/')">
+        <li v-for="audio in currentAudios" :key="audio.url">
+          <a :href="audio.url">{{ audio.title }}</a>
+        </li>
+      </ul>
+    </Transition>
 
   </div>
 </template>
@@ -81,17 +83,113 @@ const currentAudios = computed(() => {
 <style scoped>
 ul {
   list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
 }
+
+li {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+li:hover {
+  background: var(--glass-bg-hover);
+  transform: translateY(-1px);
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.crumb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sep {
+  color: var(--text-muted);
+}
+
 nav button,
 ul button {
   background: none;
   border: none;
   cursor: pointer;
-  color: #2ec4b6;
+  color: var(--primary-deep);
   font-size: 14px;
+  padding: 0.5rem 0.75rem;
 }
+
 nav button:hover,
 ul button:hover {
+  color: var(--primary);
   text-decoration: underline;
+}
+
+a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-deep);
+}
+
+.nav-fade-enter-active,
+.nav-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.nav-fade-enter-from,
+.nav-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.crumb-enter-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.crumb-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.crumb-enter-from {
+  opacity: 0;
+  transform: translateX(12px);
+}
+.crumb-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.content-enter-active,
+.content-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.content-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.content-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 </style>

@@ -7,15 +7,43 @@
 }
 
 body {
-  min-height: 100vh;
+  /* min-height: 100dvh; */
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   margin: 1rem;
+
+  background: linear-gradient(135deg, #4AFFFD 0%, #00c8d4 40%, #0090a0 100%);
+  background-attachment: fixed;
 }
 
 :root {
-  --btn-color: #e0faf5;
-  --btn-background-color: #2ec4b6;
+  /* 主色 */
+  --primary: #4AFFFD;
+  --primary-deep: #00b8ba;
+  --primary-light: #b8ffff;
+  --accent: #FF7B54;
+
+  /* 玻璃层 */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg-strong: rgba(255, 255, 255, 0.25);
+  --glass-bg-hover: rgba(255, 255, 255, 0.32);
+  --glass-blur: blur(14px);
+  --glass-border: rgba(255, 255, 255, 0.35);
+
+  /* 文字 */
+  --text: #042020;
+  --text-muted: #1a4a4a;
+  --text-light: rgba(255, 255, 255, 0.9);
+
+  /* 保留兼容旧变量 */
+  --bg: transparent;
+  --bg-surface: var(--glass-bg);
+  --bg-secondary: var(--glass-bg);
+  --bg-hover: var(--glass-bg-hover);
+  --border: var(--glass-border);
+  --border-light: rgba(255, 255, 255, 0.2);
+  --btn-color: #042020;
+  --btn-background-color: #4AFFFD;
 }

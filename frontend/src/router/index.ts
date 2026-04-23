@@ -50,6 +50,11 @@ const router = createRouter({
           path: 'audio',
           name: 'user-audio',
           component: () => import('@/views/user/UserAudioView.vue')
+        },
+        {
+          path: 'file',
+          name: 'user-file',
+          component: () => import('@/views/user/FileDownloadView.vue')
         }
       ]
     }
