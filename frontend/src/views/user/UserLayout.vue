@@ -19,6 +19,14 @@
 
 </script>
 <style scoped>
+@media (max-width: 768px) {
+  .user-layout {
+    width: 100dvw;
+    max-width: 100dvw;
+    overflow-x: hidden;
+  }
+}
+
 nav {
   display: flex;
   gap: 0.5rem;
@@ -31,6 +39,16 @@ nav {
   margin-bottom: 1rem;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+@media (max-width: 768px) {
+  nav {
+    gap: 0.1rem;
+    padding: 0.2rem;
+    width: 100%;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
 }
 
 nav::-webkit-scrollbar {

@@ -50,4 +50,4 @@ db.sqlite3
 
 
 # crawler
-crawler/config.json
+backend/crawler/config.json

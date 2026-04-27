@@ -133,7 +133,7 @@ ul button {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--primary-deep);
+  color: var(--text);
   font-size: 14px;
   padding: 0.5rem 0.75rem;
 }

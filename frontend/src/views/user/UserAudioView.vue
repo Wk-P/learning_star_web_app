@@ -1,5 +1,5 @@
 <template>
-  <div class="user audio">
+  <div class="user-audio">
 
     <Transition name="nav-fade">
       <nav v-if="currentPath.length > 0">
@@ -81,6 +81,10 @@ const currentAudios = computed(() => {
 </script>
 
 <style scoped>
+.user-audio {
+  padding: 1rem;
+}
+
 ul {
   list-style: none;
   display: flex;
@@ -133,7 +137,7 @@ ul button {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--primary-deep);
+  color: var(--text);
   font-size: 14px;
   padding: 0.5rem 0.75rem;
 }

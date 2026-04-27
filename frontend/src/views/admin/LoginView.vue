@@ -58,10 +58,25 @@ async function submit() {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  width: 100dvw;
   background: #f0f2f5;
 }
+
+@media (max-width: 768px) {
+  .login-card {
+    width: 100dvw;
+    overflow-x: hidden;
+  }
+}
+
 .login-card {
   width: 380px;
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    width: 90%;
+  }
 }
 
 .link {

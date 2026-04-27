@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="layout">
     <nav class="header-nav">
       <RouterLink :to="{ name: 'user-dashboard' }" class="link">学习内容</RouterLink>
       <RouterLink :to="{ name: 'admin-dashboard' }" class="link">管理界面</RouterLink>
@@ -23,12 +23,21 @@
 import { ref } from 'vue';
 const cards = ref([
   { url: { name: 'user-video' }, name: '视频' },
-  { url: { name: 'user-audio' }, name: '音频' }
+  { url: { name: 'user-audio' }, name: '音频' },
+  { url: { name: 'user-file' }, name: '文件' },
 ]);
 
 
 </script>
 <style scoped>
+
+@media (max-width: 768px) {
+  .layout {
+    width: 100dvw;
+    overflow-x: hidden;
+  }
+}
+
 .header-nav {
   display: flex;
   justify-content: space-evenly;
@@ -50,7 +59,7 @@ const cards = ref([
 
   .header-nav .link {
     border: 1px solid var(--border);
-    margin: .5rem;
+    margin: .1rem;
   }
 }
 
@@ -71,13 +80,22 @@ const cards = ref([
   background-color: var(--bg-hover);
 }
 
+
+main {
+  height: 100%;
+}
+
 .content {
   text-align: center;
-  margin: 4rem 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1rem;
 }
 
 @media (max-width: 768px) {
   .content {
+    min-height: 80dvh;
     margin: .2rem;
   }
 }
@@ -85,14 +103,16 @@ const cards = ref([
 .group {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15%;
-  margin-top: 2rem;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 3rem;
+  margin-top: 10%;
+  width: 50%;
 }
 
 @media (max-width: 768px) {
   .group {
     grid-template-columns: 1fr;
+    min-height: fit-content;
   }
 }
 
