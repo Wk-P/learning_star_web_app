@@ -24,6 +24,13 @@ export const api = {
     })
   },
 
+  register(username: string, password: string, email?: string) {
+    return request<UserItem>('/user/register/', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, email }),
+    })
+  },
+
   getVideoList() {
     return request<{ id: number; path: string[]; videos: VideoItem[] }[]>('/video/list/')
   },
