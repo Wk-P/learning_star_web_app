@@ -1,35 +1,71 @@
-from .models import Video, VideoFolder
+from pathlib import Path
+from django.conf import settings
+
+from .models import Video
 from .serializers import VideoSerializer
 
-    
 
-def get_video_list() -> list[dict]:
-    folder_objects = VideoFolder.objects.prefetch_related('videos_list').all()
+def get_video_list(user=None) -> list[dict]:
+    """
+    Scan VIDEO_ROOT for .m3u8 files.
 
-    data = []
+    Expected layout:
+        VIDEO_ROOT/
+        └── {folder...}/
+            └── {video_name}/       ← named folder = video title
+                ├── playlist.m3u8
+                └── *.ts
+    """
+    root = Path(settings.VIDEO_ROOT)
+    if not root.exists():
+        return []
 
-    for folder_object in folder_objects:
-        path_id = folder_object.id
-        path = folder_object.path
-        videos = VideoSerializer(folder_object.videos_list.all(), many=True).data
+    folders_map: dict[tuple, list] = {}
 
+    for m3u8 in sorted(root.rglob('*.m3u8')):
+        rel   = m3u8.relative_to(root)
+        parts = rel.parts          # e.g. ('分类1', '分类2', '课程名', 'playlist.m3u8')
 
-        data.append({
-            "id": path_id,
-            "path": path,
-            "videos": videos
+        if len(parts) == 1:
+            # m3u8 sits directly in VIDEO_ROOT (no named subfolder)
+            folder_key = ()
+            title = m3u8.stem
+        else:
+            # parts[-1] = filename, parts[-2] = video folder (title)
+            folder_key = parts[:-2]
+            title      = parts[-2]
+
+        url = settings.MEDIA_URL + 'videos/' + '/'.join(rel.parts)
+
+        if folder_key not in folders_map:
+            folders_map[folder_key] = []
+        folders_map[folder_key].append({
+            'id':    abs(hash(str(m3u8))) % (2 ** 31),
+            'title': title,
+            'url':   url,
         })
-    
 
-    return data
+    result = []
+    for i, (key, videos) in enumerate(sorted(folders_map.items())):
+        result.append({
+            'id':     i + 1,
+            'path':   list(key),
+            'videos': sorted(videos, key=lambda v: v['title']),
+        })
+
+    if user is None or user.is_staff:
+        return result
+
+    from permission.models import MediaPermission
+    allowed = set(
+        MediaPermission.objects.filter(user=user, media_type='video')
+        .values_list('root_dir', flat=True)
+    )
+    return [f for f in result if f['path'] and f['path'][0] in allowed]
 
 
 def get_video(pk: int):
     try:
-        video = Video.objects.get(id=pk)
+        return VideoSerializer(Video.objects.get(id=pk)).data
     except Video.DoesNotExist:
         return None
-
-    data = VideoSerializer(video).data
-
-    return data

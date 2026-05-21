@@ -39,6 +39,39 @@ export const api = {
   getAudio(id: number) {
     return request<AudioItem>(`/audio/detail/?id=${id}`)
   },
+
+  getPdfList() {
+    return request<{ id: number; path: string[]; pdfs: PdfItem[] }[]>('/pdf/list/')
+  },
+
+  getPdf(id: number) {
+    return request<PdfItem>(`/pdf/detail/?id=${id}`)
+  },
+
+  // admin: user management
+  getUserList() {
+    return request<UserItem[]>('/user/')
+  },
+  createUser(data: { username: string; password: string; email?: string }) {
+    return request<UserItem>('/user/create/', { method: 'POST', body: JSON.stringify(data) })
+  },
+  deleteUser(id: number) {
+    return request<void>(`/user/${id}/delete/`, { method: 'DELETE' })
+  },
+
+  // admin: permissions
+  getMediaRoots() {
+    return request<{ video: string[]; audio: string[]; pdf: string[] }>('/permission/roots/')
+  },
+  getUserPermissions(userId: number) {
+    return request<{ video: string[]; audio: string[]; pdf: string[] }>(`/permission/users/${userId}/`)
+  },
+  setUserPermissions(userId: number, data: { video: string[]; audio: string[]; pdf: string[] }) {
+    return request<{ video: string[]; audio: string[]; pdf: string[] }>(`/permission/users/${userId}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
 }
 
 export interface VideoItem {
@@ -51,4 +84,17 @@ export interface AudioItem {
   id: number
   title: string
   url: string
+}
+
+export interface PdfItem {
+  id: number
+  title: string
+  url: string
+}
+
+export interface UserItem {
+  id: number
+  username: string
+  email: string
+  is_staff: boolean
 }

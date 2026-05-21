@@ -1,10 +1,10 @@
 # python3/main.py
 from pathlib import Path
 import json 
+from crawler.downloader import download_m3u8
 
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / 'config.json'
-
 
 
 

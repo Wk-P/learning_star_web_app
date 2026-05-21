@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'user',
     'video',
     'audio',
+    'pdf',
+    'permission',
 ]
 
 AUTH_USER_MODEL = 'user.User'
@@ -150,6 +152,10 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 VIDEO_ROOT = os.environ.get('VIDEO_ROOT', str(BASE_DIR / 'media' / 'videos'))
 AUDIO_ROOT = os.environ.get('AUDIO_ROOT', str(BASE_DIR / 'media' / 'audios'))
+PDF_ROOT = os.environ.get('PDF_ROOT', str(BASE_DIR / 'media' / 'pdfs'))
 

@@ -1,56 +1,103 @@
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* ═══════════════════════════════════════════
+   DARK THEME (default)
+═══════════════════════════════════════════ */
+:root {
+  --primary:         #2dd4bf;
+  --primary-dark:    #0d9488;
+  --primary-dim:     rgba(45, 212, 191, 0.10);
+  --primary-glow:    rgba(45, 212, 191, 0.28);
+  --secondary:       #818cf8;
+  --accent:          #fb923c;
+
+  --bg:              #07090e;
+  --surface-1:       rgba(255, 255, 255, 0.04);
+  --surface-2:       rgba(255, 255, 255, 0.08);
+  --surface-3:       rgba(255, 255, 255, 0.14);
+  --surface-nav:     rgba(10, 13, 22, 0.82);
+
+  --border:          rgba(255, 255, 255, 0.07);
+  --border-strong:   rgba(255, 255, 255, 0.14);
+  --border-primary:  rgba(45, 212, 191, 0.35);
+
+  --text:            #e2e8f0;
+  --text-muted:      #8892a4;
+  --text-subtle:     #4a5568;
+
+  --blur:            blur(24px) saturate(160%);
+  --r-sm:  0.5rem;
+  --r-md:  0.75rem;
+  --r-lg:  1.25rem;
+  --r-xl:  2rem;
+  --ease:  cubic-bezier(0.4, 0, 0.2, 1);
+  --t:     0.18s var(--ease);
+
+  /* legacy aliases */
+  --glass-bg:        var(--surface-1);
+  --glass-bg-strong: var(--surface-3);
+  --glass-bg-hover:  var(--surface-2);
+  --glass-blur:      var(--blur);
+  --glass-border:    var(--border);
+}
+
+/* ═══════════════════════════════════════════
+   LIGHT THEME  —  薄荷蓝
+═══════════════════════════════════════════ */
+[data-theme="light"] {
+  --primary:         #0d9488;
+  --primary-dark:    #0f766e;
+  --primary-dim:     rgba(13, 148, 136, 0.10);
+  --primary-glow:    rgba(13, 148, 136, 0.20);
+  --secondary:       #4f46e5;
+  --accent:          #e05c2b;
+
+  --bg:              #e6f5f4;
+  --surface-1:       rgba(255, 255, 255, 0.62);
+  --surface-2:       rgba(255, 255, 255, 0.82);
+  --surface-3:       rgba(255, 255, 255, 0.96);
+  --surface-nav:     rgba(220, 243, 241, 0.88);
+
+  --border:          rgba(13, 148, 136, 0.13);
+  --border-strong:   rgba(13, 148, 136, 0.24);
+  --border-primary:  rgba(13, 148, 136, 0.42);
+
+  --text:            #0b2422;
+  --text-muted:      #2d706b;
+  --text-subtle:     #6ab3ae;
+}
+
+/* ═══════════════════════════════════════════
+   BODY
+═══════════════════════════════════════════ */
 body {
   min-height: 100dvh;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-
-  background: linear-gradient(135deg, #4AFFFD 0%, #00c8d4 40%, #0090a0 100%);
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 55% at 12% -8%,  rgba(45, 212, 191, 0.11) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 110%, rgba(129, 140, 248, 0.08) 0%, transparent 55%);
   background-attachment: fixed;
+  overflow-x: hidden;
+  transition: background-color 0.3s var(--ease), color 0.2s var(--ease);
 }
 
-@media (max-width: 768px) {
-  body {
-    max-width: 100svw;
-    min-width: 100dvw;
-    overflow-x: hidden;
-  }
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(ellipse 80% 55% at 12% -8%,  rgba(13, 148, 136, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 110%, rgba(79, 70, 229, 0.07) 0%, transparent 55%);
 }
 
-:root {
-  /* 主色 */
-  --primary: #4AFFFD;
-  --primary-deep: #00b8ba;
-  --primary-light: #b8ffff;
-  --accent: #FF7B54;
-
-  /* 玻璃层 */
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-bg-strong: rgba(255, 255, 255, 0.25);
-  --glass-bg-hover: rgba(255, 255, 255, 0.32);
-  --glass-blur: blur(14px);
-  --glass-border: rgba(255, 255, 255, 0.35);
-
-  /* 文字 */
-  --text: #042020;
-  --text-muted: #1a4a4a;
-  --text-light: rgba(255, 255, 255, 0.9);
-
-  /* 保留兼容旧变量 */
-  --bg: transparent;
-  --bg-surface: var(--glass-bg);
-  --bg-secondary: var(--glass-bg);
-  --bg-hover: var(--glass-bg-hover);
-  --border: var(--glass-border);
-  --border-light: rgba(255, 255, 255, 0.2);
-  --btn-color: #042020;
-  --btn-background-color: #4AFFFD;
-}
+/* ── scrollbar ─────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }

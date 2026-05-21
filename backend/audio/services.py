@@ -1,35 +1,61 @@
-from .models import Audio, AudioFolder
+from pathlib import Path
+from django.conf import settings
+
+from .models import Audio
 from .serializers import AudioSerializer
 
-    
 
-def get_audio_list() -> list[dict]:
-    folder_objects = AudioFolder.objects.prefetch_related('audios_list').all()
+def get_audio_list(user=None) -> list[dict]:
+    """
+    Scan AUDIO_ROOT for .mp3 files.
 
-    data = []
+    Expected layout:
+        AUDIO_ROOT/
+        └── {folder...}/
+            └── filename.mp3     ← file itself is the audio item
+    """
+    root = Path(settings.AUDIO_ROOT)
+    if not root.exists():
+        return []
 
-    for folder_object in folder_objects:
-        path_id = folder_object.id
-        path = folder_object.path
-        audios = AudioSerializer(folder_object.audios_list.all(), many=True).data
+    folders_map: dict[tuple, list] = {}
 
+    for mp3 in sorted(root.rglob('*.mp3')):
+        rel        = mp3.relative_to(root)
+        parts      = rel.parts          # e.g. ('分类1', '分类2', 'file.mp3')
+        folder_key = parts[:-1]         # all dirs above the file
+        title      = mp3.stem           # filename without extension
+        url        = settings.MEDIA_URL + 'audios/' + '/'.join(parts)
 
-        data.append({
-            "id": path_id,
-            "path": path,
-            "audios": audios
+        if folder_key not in folders_map:
+            folders_map[folder_key] = []
+        folders_map[folder_key].append({
+            'id':    abs(hash(str(mp3))) % (2 ** 31),
+            'title': title,
+            'url':   url,
         })
-    
 
-    return data
+    result = []
+    for i, (key, audios) in enumerate(sorted(folders_map.items())):
+        result.append({
+            'id':     i + 1,
+            'path':   list(key),
+            'audios': sorted(audios, key=lambda a: a['title']),
+        })
+
+    if user is None or user.is_staff:
+        return result
+
+    from permission.models import MediaPermission
+    allowed = set(
+        MediaPermission.objects.filter(user=user, media_type='audio')
+        .values_list('root_dir', flat=True)
+    )
+    return [f for f in result if f['path'] and f['path'][0] in allowed]
 
 
 def get_audio(pk: int):
     try:
-        audio = Audio.objects.get(id=pk)
+        return AudioSerializer(Audio.objects.get(id=pk)).data
     except Audio.DoesNotExist:
-        return { "message": "Not found required audio.", "status": "Failed", "code": 404 }
-
-    data = AudioSerializer(audio).data
-
-    return data
+        return None
