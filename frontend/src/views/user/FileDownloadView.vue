@@ -18,20 +18,26 @@
     <p v-if="loading" class="hint">加载中…</p>
     <p v-else-if="error" class="hint hint--error">{{ error }}</p>
 
-    <!-- categories -->
+    <!-- category cards -->
     <Transition name="fade-up" mode="out-in">
-      <ul v-if="subCategories.length > 0" class="chips" :key="'cat-' + currentPath.join('/')">
-        <li v-for="cat in subCategories" :key="cat">
-          <button class="chip" @click="currentPath = [...currentPath, cat]">{{ cat }}</button>
-        </li>
-      </ul>
+      <div v-if="subCategories.length > 0" class="cards-grid" :key="'cards-' + currentPath.join('/')">
+        <button
+          v-for="cat in subCategories"
+          :key="cat"
+          class="category-card"
+          @click="currentPath = [...currentPath, cat]"
+        >
+          <span class="card-icon">📁</span>
+          <span class="card-name">{{ cat }}</span>
+        </button>
+      </div>
     </Transition>
 
     <!-- file list -->
     <Transition name="fade-up" mode="out-in">
       <ul v-if="currentFiles.length > 0" class="item-list" :key="'file-' + currentPath.join('/')">
         <li v-for="file in currentFiles" :key="file.url" class="item">
-          <a class="item-btn" :href="file.url" target="_blank" download>
+          <a class="item-btn" :href="file.url" target="_blank" download @click="addHistory({ type: 'file', title: file.title, url: file.url, path: file.path })">
             <span class="item-icon">↓</span>
             <span class="item-title">{{ file.title }}</span>
             <span class="item-ext">pdf</span>
@@ -46,6 +52,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/api'
+import { addHistory } from '@/composables/useHistory'
 
 interface PdfFile {
   id: number
@@ -85,7 +92,7 @@ const subCategories = computed(() => {
     f.path.length > depth + 1 &&
     currentPath.value.every((seg, i) => f.path[i] === seg)
   )
-  return [...new Set(matched.map((f) => f.path[depth]))]
+  return [...new Set(matched.map((f) => f.path[depth]).filter((s): s is string => s !== undefined))]
 })
 
 const currentFiles = computed(() =>
@@ -100,6 +107,37 @@ const currentFiles = computed(() =>
 </script>
 
 <style scoped>
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 1.1rem 1.1rem 0.9rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--t), border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+
+.category-card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.card-icon { font-size: 1.5rem; line-height: 1; }
+.card-name { font-size: 0.9rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-all; }
+.card-count { font-size: 0.75rem; color: var(--text-muted); }
+
 .content-view {
   padding: 1.25rem 0;
   display: flex;
@@ -161,31 +199,6 @@ const currentFiles = computed(() =>
 
 .crumb-root:hover {
   background: var(--primary-dim);
-}
-
-.chips {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.chip {
-  background: var(--primary-dim);
-  border: 1px solid rgba(45, 212, 191, 0.2);
-  border-radius: 999px;
-  color: var(--primary);
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.375rem 1rem;
-  cursor: pointer;
-  transition: background var(--t), border-color var(--t), transform var(--t);
-}
-
-.chip:hover {
-  background: rgba(45, 212, 191, 0.18);
-  border-color: var(--border-primary);
-  transform: translateY(-1px);
 }
 
 .item-list {
@@ -262,4 +275,9 @@ const currentFiles = computed(() =>
 }
 .fade-up-enter-from { opacity: 0; transform: translateY(8px); }
 .fade-up-leave-to   { opacity: 0; transform: translateY(-5px); }
+
+@media (max-width: 480px) {
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .item-btn { padding: 0.65rem 0.85rem; font-size: 0.85rem; }
+}
 </style>

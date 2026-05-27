@@ -70,6 +70,9 @@ export const api = {
   getMediaRoots() {
     return request<{ video: string[]; audio: string[]; pdf: string[] }>('/permission/roots/')
   },
+  getMediaTree() {
+    return request<{ video: TreeNode[]; audio: TreeNode[]; pdf: TreeNode[] }>('/permission/tree/')
+  },
   getUserPermissions(userId: number) {
     return request<{ video: string[]; audio: string[]; pdf: string[] }>(`/permission/users/${userId}/`)
   },
@@ -77,6 +80,17 @@ export const api = {
     return request<{ video: string[]; audio: string[]; pdf: string[] }>(`/permission/users/${userId}/`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    })
+  },
+
+  getMyPermissions() {
+    return request<{ video: string[]; audio: string[]; pdf: string[] }>('/user/me/permissions/')
+  },
+
+  changePassword(oldPassword: string, newPassword: string) {
+    return request<{ detail: string }>('/user/me/password/', {
+      method: 'POST',
+      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
     })
   },
 }
@@ -104,4 +118,10 @@ export interface UserItem {
   username: string
   email: string
   is_staff: boolean
+}
+
+export interface TreeNode {
+  path: string
+  label: string
+  children: TreeNode[]
 }

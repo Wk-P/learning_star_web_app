@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 
 function parseJwtPayload(token: string): Record<string, unknown> {
   try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const base64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')
     return JSON.parse(atob(base64))
   } catch {
     return {}
@@ -29,6 +29,11 @@ export const useAuthStore = defineStore('auth', () => {
     return !!parseJwtPayload(accessToken.value)['is_staff']
   })
 
+  const username = computed(() => {
+    if (!accessToken.value) return ''
+    return (parseJwtPayload(accessToken.value)['username'] as string) || ''
+  })
+
   // sync cookie on startup so ProtectedMediaView can read it immediately
   if (accessToken.value) {
     setCookie('access_token', accessToken.value)
@@ -50,5 +55,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearCookie('access_token')
   }
 
-  return { accessToken, refreshToken, isLoggedIn, isAdmin, setTokens, clearTokens }
+  return { accessToken, refreshToken, isLoggedIn, isAdmin, username, setTokens, clearTokens }
 })

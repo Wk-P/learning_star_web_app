@@ -1,6 +1,7 @@
 from pathlib import Path
 from django.conf import settings
 
+from backend.utils import natural_key
 from .models import Video
 from .serializers import VideoSerializer
 
@@ -46,11 +47,11 @@ def get_video_list(user=None) -> list[dict]:
         })
 
     result = []
-    for i, (key, videos) in enumerate(sorted(folders_map.items())):
+    for i, (key, videos) in enumerate(sorted(folders_map.items(), key=lambda x: [natural_key(p) for p in x[0]])):
         result.append({
             'id':     i + 1,
             'path':   list(key),
-            'videos': sorted(videos, key=lambda v: v['title']),
+            'videos': sorted(videos, key=lambda v: natural_key(v['title'])),
         })
 
     if user is None or user.is_staff:
@@ -61,7 +62,15 @@ def get_video_list(user=None) -> list[dict]:
         MediaPermission.objects.filter(user=user, media_type='video')
         .values_list('root_dir', flat=True)
     )
-    return [f for f in result if f['path'] and f['path'][0] in allowed]
+    return [f for f in result if _path_allowed(f['path'], allowed)]
+
+
+def _path_allowed(path: list, allowed: set) -> bool:
+    for ap in allowed:
+        parts = ap.split('/')
+        if path[:len(parts)] == parts:
+            return True
+    return False
 
 
 def get_video(pk: int):

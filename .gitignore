@@ -51,3 +51,5 @@ db.sqlite3
 
 # crawler
 backend/crawler/config.json
+
+*.sh

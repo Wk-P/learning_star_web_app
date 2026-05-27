@@ -3,7 +3,7 @@
     <!-- sidebar -->
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <span class="logo-mark">P3</span>
+        <span class="logo-mark">韩途</span>
         <span class="logo-text">Admin</span>
       </div>
 
@@ -27,6 +27,10 @@
         <RouterLink to="/admin/users" class="nav-item">
           <span class="nav-icon">⊙</span>
           <span>用户</span>
+        </RouterLink>
+        <RouterLink to="/admin/permissions" class="nav-item">
+          <span class="nav-icon">🔑</span>
+          <span>权限</span>
         </RouterLink>
       </nav>
 
@@ -63,6 +67,7 @@ const titleMap: Record<string, string> = {
   '/admin/audio': '音频管理',
   '/admin/pdf':   'PDF 管理',
   '/admin/users': '用户管理',
+  '/admin/permissions': '权限管理',
 }
 const pageTitle = computed(() => titleMap[route.path] ?? 'Admin')
 
@@ -263,14 +268,16 @@ function logout() {
   overflow-y: auto;
 }
 
-/* ── mobile: hide sidebar, show top bar ── */
+/* ── mobile: sidebar → horizontal top bar ── */
 @media (max-width: 768px) {
   .admin-shell { flex-direction: column; }
 
   .sidebar {
     width: 100%;
     height: auto;
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 40;
     flex-direction: row;
     overflow-x: auto;
     overflow-y: visible;
@@ -281,18 +288,57 @@ function logout() {
 
   .sidebar::-webkit-scrollbar { display: none; }
 
-  .sidebar-logo { padding: 0.75rem 1rem; border-bottom: none; margin-bottom: 0; }
+  .sidebar-logo {
+    padding: 0 1rem;
+    border-bottom: none;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    height: 48px;
+  }
 
   .sidebar-nav {
     flex-direction: row;
-    gap: 0.25rem;
-    padding: 0.5rem 0.5rem;
+    gap: 0.15rem;
+    padding: 0 0.25rem;
     flex: 1;
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .sidebar-footer { padding: 0.5rem; border-top: none; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
 
-  .admin-content { padding: 1rem; }
+  .nav-item {
+    flex-shrink: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    height: 48px;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-item.router-link-active {
+    background: none;
+    border-bottom-color: #2dd4bf;
+  }
+
+  .sidebar-footer {
+    padding: 0 0.5rem;
+    border-top: none;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .logout-btn {
+    width: auto;
+    white-space: nowrap;
+    height: 32px;
+    padding: 0 0.75rem;
+  }
+
+  .admin-header { padding: 0.6rem 1rem; }
+
+  .admin-content { padding: 0.75rem; }
 }
 </style>

@@ -5,8 +5,8 @@
       <!-- brand -->
       <div class="brand">
         <RouterLink to="/" class="brand-link">
-          <span class="mark">P3</span>
-          <span class="name">Player3</span>
+          <span class="mark">한</span>
+          <span class="name">韩途</span>
         </RouterLink>
         <span class="back-link-top">
           <RouterLink to="/">← 返回首页</RouterLink>

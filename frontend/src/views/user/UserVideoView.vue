@@ -18,13 +18,19 @@
     <p v-if="loading" class="hint">加载中…</p>
     <p v-else-if="error" class="hint hint--error">{{ error }}</p>
 
-    <!-- categories -->
+    <!-- category cards -->
     <Transition name="fade-up" mode="out-in">
-      <ul v-if="subCategories.length > 0" class="chips" :key="'cat-' + currentPath.join('/')">
-        <li v-for="cat in subCategories" :key="cat">
-          <button class="chip" @click="currentPath = [...currentPath, cat]">{{ cat }}</button>
-        </li>
-      </ul>
+      <div v-if="subCategories.length > 0" class="cards-grid" :key="'cards-' + currentPath.join('/')">
+        <button
+          v-for="cat in subCategories"
+          :key="cat"
+          class="category-card"
+          @click="currentPath = [...currentPath, cat]"
+        >
+          <span class="card-icon">🎬</span>
+          <span class="card-name">{{ cat }}</span>
+        </button>
+      </div>
     </Transition>
 
     <!-- video list -->
@@ -57,6 +63,7 @@
 import { ref, computed, onMounted } from 'vue'
 import VideoPlayer from '@/components/VIdeoComponent.vue'
 import { api } from '@/api'
+import { addHistory } from '@/composables/useHistory'
 
 interface Video {
   id: number
@@ -97,7 +104,7 @@ const subCategories = computed(() => {
     v.path.length > depth + 1 &&
     currentPath.value.every((seg, i) => v.path[i] === seg)
   )
-  return [...new Set(matched.map((v) => v.path[depth]))]
+  return [...new Set(matched.map((v) => v.path[depth]).filter((s): s is string => s !== undefined))]
 })
 
 const currentVideos = computed(() =>
@@ -112,6 +119,7 @@ const currentVideos = computed(() =>
 
 function playVideo(video: Video) {
   activeVideo.value = video
+  addHistory({ type: 'video', title: video.title, url: video.url, path: video.path })
 }
 </script>
 
@@ -122,6 +130,52 @@ function playVideo(video: Video) {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* ── top-level cards ────────────────── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 1.1rem 1.1rem 0.9rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--t), border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+
+.category-card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+.card-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 /* ── breadcrumb ─────────────────────── */
@@ -179,32 +233,6 @@ function playVideo(video: Video) {
 
 .crumb-root:hover {
   background: var(--primary-dim);
-}
-
-/* ── chips (categories) ─────────────── */
-.chips {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.chip {
-  background: var(--primary-dim);
-  border: 1px solid rgba(45, 212, 191, 0.2);
-  border-radius: 999px;
-  color: var(--primary);
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.375rem 1rem;
-  cursor: pointer;
-  transition: background var(--t), border-color var(--t), transform var(--t);
-}
-
-.chip:hover {
-  background: rgba(45, 212, 191, 0.18);
-  border-color: var(--border-primary);
-  transform: translateY(-1px);
 }
 
 /* ── item list ──────────────────────── */
@@ -338,5 +366,12 @@ function playVideo(video: Video) {
 .player-in-leave-to {
   opacity: 0;
   transform: translateY(14px) scale(0.98);
+}
+
+@media (max-width: 480px) {
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .player-header { padding: 0.5rem 0.75rem; }
+  .player-title { font-size: 0.8rem; }
+  .item-btn { padding: 0.65rem 0.85rem; font-size: 0.85rem; }
 }
 </style>

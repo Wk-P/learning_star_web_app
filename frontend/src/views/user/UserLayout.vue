@@ -8,6 +8,7 @@
         <RouterLink :to="{ name: 'user-audio' }" class="nav-link">音频</RouterLink>
         <RouterLink :to="{ name: 'user-file' }" class="nav-link">文件</RouterLink>
       </div>
+      <RouterLink :to="{ name: 'user-account' }" class="nav-link nav-link--account">我的</RouterLink>
       <div class="nav-right-group">
         <button class="theme-btn" @click="theme.toggle()" :aria-label="theme.isDark ? '切换浅色' : '切换深色'">
           <span class="theme-icon">{{ theme.isDark ? '☾' : '☀' }}</span>
@@ -25,6 +26,8 @@
         </Transition>
       </RouterView>
     </div>
+
+    <AppFooter class="layout-footer" />
 
     <!-- mobile bottom tab bar -->
     <nav class="bottom-nav" aria-label="底部导航">
@@ -44,6 +47,10 @@
         <span class="tab-icon">↓</span>
         <span class="tab-label">文件</span>
       </RouterLink>
+      <RouterLink :to="{ name: 'user-account' }" class="tab-item">
+        <span class="tab-icon">⊙</span>
+        <span class="tab-label">我的</span>
+      </RouterLink>
       <button class="tab-item tab-theme-btn" @click="theme.toggle()">
         <span class="tab-icon">{{ theme.isDark ? '☾' : '☀' }}</span>
         <span class="tab-label">主题</span>
@@ -54,6 +61,7 @@
 
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
+import AppFooter from '@/components/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
@@ -129,6 +137,11 @@ function logout() {
 .nav-link--back:hover {
   color: var(--text-muted);
   background: none;
+}
+
+.nav-link--account {
+  margin-left: auto;
+  margin-right: 0.25rem;
 }
 
 .nav-right-group {
@@ -207,9 +220,13 @@ function logout() {
 .opacity-enter-to,
 .opacity-leave-from { opacity: 1; transform: none; }
 
+/* ── footer ──────────────────────────── */
+.layout-footer { flex-shrink: 0; }
+
 /* ── mobile ──────────────────────────── */
 @media (max-width: 768px) {
   .top-nav { display: none; }
+  .layout-footer { display: none; }
 
   .page-content {
     padding: 0.75rem 0.75rem calc(68px + env(safe-area-inset-bottom, 0px));

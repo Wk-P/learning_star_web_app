@@ -1,7 +1,9 @@
 <template>
   <div class="layout">
+
+    <!-- sticky nav -->
     <nav class="top-nav">
-      <span class="site-mark">Player3</span>
+      <span class="site-mark">韩途</span>
       <div class="nav-right">
         <RouterLink :to="{ name: 'user-dashboard' }" class="nav-link">学习内容</RouterLink>
         <RouterLink :to="{ name: 'admin-login' }" class="nav-link nav-link--ghost">管理</RouterLink>
@@ -11,29 +13,49 @@
       </div>
     </nav>
 
-    <main class="hero">
-      <div class="hero-content">
-        <div class="hero-badge">韩国语学习平台</div>
-        <h1 class="hero-title">学习资源中心</h1>
-        <p class="hero-sub">视频 · 音频 · 文件，一站式访问</p>
+    <!-- scroll container -->
+    <div class="scroll-wrap">
 
-        <ul class="cards">
-          <li v-for="card in cards" :key="card.url.name">
-            <RouterLink :to="card.url" class="card-link">
-              <span class="card-icon">{{ card.icon }}</span>
-              <span class="card-name">{{ card.name }}</span>
-              <span class="card-desc">{{ card.desc }}</span>
-            </RouterLink>
-          </li>
-        </ul>
-      </div>
-    </main>
+      <!-- screen 1: hero -->
+      <section class="screen screen-hero">
+        <div class="hero-logo-wrap">
+          <img src="/home-logo.png" class="hero-logo-img" />
+        </div>
+        <div class="hero-content">
+          <div class="hero-badge">韩国语学习平台</div>
+          <h1 class="hero-title">学习资源中心</h1>
+          <p class="hero-sub">视频 · 音频 · 文件，一站式访问</p>
+          <div class="scroll-hint" aria-hidden="true">
+            <span class="scroll-arrow">↓</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- screen 2: cards -->
+      <section class="screen screen-cards">
+        <div class="cards-content">
+          <p class="cards-eyebrow">开始学习</p>
+          <ul class="cards">
+            <li v-for="card in cards" :key="card.url.name">
+              <RouterLink :to="card.url" class="card-link">
+                <span class="card-icon">{{ card.icon }}</span>
+                <span class="card-name">{{ card.name }}</span>
+                <span class="card-desc">{{ card.desc }}</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
+        <AppFooter class="home-footer" />
+      </section>
+
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useThemeStore } from '@/stores/theme'
+import AppFooter from '@/components/AppFooter.vue'
 
 const theme = useThemeStore()
 const cards = ref([
@@ -44,13 +66,15 @@ const cards = ref([
 </script>
 
 <style scoped>
+/* ── shell ──────────────────────── */
 .layout {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* ── top nav ─────────────────────────── */
+/* ── nav ────────────────────────── */
 .top-nav {
   display: flex;
   align-items: center;
@@ -60,8 +84,7 @@ const cards = ref([
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 50;
 }
 
@@ -119,22 +142,104 @@ const cards = ref([
   color: var(--primary);
 }
 
-/* ── hero ────────────────────────────── */
-.hero {
+/* ── scroll container ───────────── */
+.scroll-wrap {
+  flex: 1;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+}
+
+/* ── screen base ────────────────── */
+.screen {
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* screen 1: 从深蓝渐变到 bg，底部与 screen 2 顶部完全一致 */
+.screen-hero {
+  background: linear-gradient(to bottom, #0b1929 0%, #07090e 100%);
+}
+
+/* screen 2: 顶部从 bg 开始，向深色渐变 */
+.screen-cards {
+  background: linear-gradient(to bottom, #07090e 0%, #060810 100%);
+}
+
+[data-theme="light"] .screen-hero {
+  background: linear-gradient(to bottom, #cceae7 0%, #e6f5f4 100%);
+}
+
+[data-theme="light"] .screen-cards {
+  background: linear-gradient(to bottom, #e6f5f4 0%, #ddf0ee 100%);
+}
+
+/* ── screen 1: hero ─────────────── */
+.screen-hero {
+  flex-direction: column;
+  gap: 0;
+}
+
+.hero-logo-wrap {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1.5rem 5rem;
+  padding: 1.5rem;
+  min-height: 0;
+  position: relative;
+}
+
+.hero-logo-wrap::before {
+  content: '';
+  position: absolute;
+  width: min(500px, 90vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  filter: blur(40px);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.hero-logo-img {
+  max-height: 100%;
+  max-width: min(420px, 75vw);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 8px 32px var(--primary-glow));
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.1); }
 }
 
 .hero-content {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 1rem;
-  max-width: 680px;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 2rem;
   width: 100%;
 }
 
@@ -166,14 +271,59 @@ const cards = ref([
   margin-top: -0.25rem;
 }
 
-/* ── cards ───────────────────────────── */
+.scroll-hint {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.scroll-arrow {
+  font-size: 1.1rem;
+  color: var(--text-subtle);
+  animation: bob 1.6s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50%       { transform: translateY(6px); opacity: 1; }
+}
+
+/* ── footer ─────────────────────── */
+.home-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+/* ── screen 2: cards ────────────── */
+
+.cards-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 720px;
+  padding: 0 1.5rem;
+}
+
+.cards-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
 .cards {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   width: 100%;
-  margin-top: 1.75rem;
 }
 
 .card-link {
@@ -181,7 +331,7 @@ const cards = ref([
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  padding: 2.25rem 1.25rem 1.75rem;
+  padding: 2.5rem 1.25rem 2rem;
   border-radius: var(--r-lg);
   background: var(--surface-1);
   backdrop-filter: var(--blur);
@@ -194,11 +344,11 @@ const cards = ref([
   background: var(--surface-2);
   border-color: var(--border-primary);
   transform: translateY(-4px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22), 0 0 0 1px var(--border-primary);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.22), 0 0 0 1px var(--border-primary);
 }
 
 [data-theme="light"] .card-link:hover {
-  box-shadow: 0 12px 36px rgba(13, 148, 136, 0.12), 0 0 0 1px var(--border-primary);
+  box-shadow: 0 12px 36px rgba(13,148,136,0.12), 0 0 0 1px var(--border-primary);
 }
 
 .card-icon {
@@ -219,13 +369,20 @@ const cards = ref([
   color: var(--text-muted);
 }
 
-/* ── mobile ──────────────────────────── */
+/* ── mobile ─────────────────────── */
 @media (max-width: 600px) {
   .top-nav { padding: 0.6rem 1rem; }
 
-  .hero { padding: 2rem 1rem 3rem; align-items: flex-start; }
-
   .hero-title { font-size: 2rem; }
+
+  .hero-content {
+    padding: 1rem 1rem 1.5rem;
+    gap: 0.55rem;
+  }
+
+  .scroll-hint { margin-top: 1rem; }
+
+  .hero-logo-wrap { padding: 1rem; }
 
   .cards {
     grid-template-columns: 1fr;
@@ -242,5 +399,11 @@ const cards = ref([
 
   .card-icon { font-size: 1.6rem; flex-shrink: 0; }
   .card-name { font-size: 1rem; }
+}
+
+@media (max-height: 600px) and (max-width: 900px) {
+  .hero-content { padding: 0.75rem 1rem 1rem; gap: 0.4rem; }
+  .scroll-hint { margin-top: 0.5rem; }
+  .hero-title { font-size: clamp(1.5rem, 4vw, 2rem); }
 }
 </style>

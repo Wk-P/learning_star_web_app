@@ -19,8 +19,8 @@
     <!-- user list -->
     <div v-if="loadingUsers" class="loading-hint">加载中…</div>
     <template v-else>
-      <div v-for="u in users" :key="u.id" class="user-row card" :class="{ active: selectedUser?.id === u.id }">
-        <div class="user-info" @click="selectUser(u)">
+      <div v-for="u in users" :key="u.id" class="user-row card">
+        <div class="user-info">
           <span class="user-name">{{ u.username }}</span>
           <span class="user-email">{{ u.email }}</span>
           <span class="badge" :class="u.is_staff ? 'badge-admin' : 'badge-user'">
@@ -28,63 +28,18 @@
           </span>
         </div>
         <div class="user-actions">
-          <button class="btn-outline" @click="selectUser(u)">
-            {{ selectedUser?.id === u.id ? '收起权限' : '编辑权限' }}
-          </button>
           <button v-if="!u.is_staff" class="btn-danger" @click="handleDelete(u.id)">删除</button>
         </div>
       </div>
       <div v-if="!users.length" class="empty-hint">暂无用户</div>
     </template>
 
-    <!-- permission editor -->
-    <Transition name="perm">
-      <div v-if="selectedUser" class="perm-panel card">
-        <h3>
-          <span class="user-name">{{ selectedUser.username }}</span> 的访问权限
-        </h3>
-        <div v-if="loadingPerms" class="loading-hint">加载中…</div>
-        <template v-else>
-          <div v-for="mt in mediaTypes" :key="mt.key" class="perm-section">
-            <div class="perm-label">{{ mt.label }}</div>
-            <div class="perm-dirs">
-              <label
-                v-for="dir in roots[mt.key]"
-                :key="dir"
-                class="dir-chip"
-                :class="{ checked: perms[mt.key].includes(dir) }"
-              >
-                <input
-                  type="checkbox"
-                  :value="dir"
-                  v-model="perms[mt.key]"
-                />
-                {{ dir }}
-              </label>
-              <span v-if="!roots[mt.key]?.length" class="empty-dirs">暂无目录</span>
-            </div>
-          </div>
-          <div class="perm-actions">
-            <button class="btn-primary" :disabled="saving" @click="savePerms">
-              {{ saving ? '保存中…' : '保存权限' }}
-            </button>
-            <p v-if="saveMsg" class="save-msg">{{ saveMsg }}</p>
-          </div>
-        </template>
-      </div>
-    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api, type UserItem } from '@/api'
-
-const mediaTypes = [
-  { key: 'video' as const, label: '视频' },
-  { key: 'audio' as const, label: '音频' },
-  { key: 'pdf'   as const, label: 'PDF' },
-]
 
 const users = ref<UserItem[]>([])
 const loadingUsers = ref(true)
@@ -93,49 +48,12 @@ const newUser = reactive({ username: '', password: '', email: '' })
 const creating = ref(false)
 const createError = ref('')
 
-const selectedUser = ref<UserItem | null>(null)
-const loadingPerms = ref(false)
-const roots = reactive<{ video: string[]; audio: string[]; pdf: string[] }>({ video: [], audio: [], pdf: [] })
-const perms = reactive<{ video: string[]; audio: string[]; pdf: string[] }>({ video: [], audio: [], pdf: [] })
-const saving = ref(false)
-const saveMsg = ref('')
-
-onMounted(async () => {
-  await loadUsers()
-  const r = await api.getMediaRoots()
-  roots.video = r.video
-  roots.audio = r.audio
-  roots.pdf   = r.pdf
-})
+onMounted(() => loadUsers())
 
 async function loadUsers() {
   loadingUsers.value = true
   users.value = await api.getUserList()
   loadingUsers.value = false
-}
-
-async function selectUser(u: UserItem) {
-  if (selectedUser.value?.id === u.id) {
-    selectedUser.value = null
-    return
-  }
-  selectedUser.value = u
-  loadingPerms.value = true
-  const p = await api.getUserPermissions(u.id)
-  perms.video = [...p.video]
-  perms.audio = [...p.audio]
-  perms.pdf   = [...p.pdf]
-  loadingPerms.value = false
-}
-
-async function savePerms() {
-  if (!selectedUser.value) return
-  saving.value = true
-  saveMsg.value = ''
-  await api.setUserPermissions(selectedUser.value.id, { video: perms.video, audio: perms.audio, pdf: perms.pdf })
-  saving.value = false
-  saveMsg.value = '保存成功'
-  setTimeout(() => { saveMsg.value = '' }, 2000)
 }
 
 async function handleCreate() {
@@ -163,7 +81,6 @@ async function handleCreate() {
 async function handleDelete(id: number) {
   if (!confirm('确认删除该用户？')) return
   await api.deleteUser(id)
-  if (selectedUser.value?.id === id) selectedUser.value = null
   await loadUsers()
 }
 </script>
@@ -404,5 +321,13 @@ async function handleDelete(id: number) {
   color: #8892a4;
   font-size: 0.9rem;
   padding: 1rem 0;
+}
+
+@media (max-width: 600px) {
+  .card { padding: 1rem; }
+  .create-row { flex-direction: column; gap: 0.5rem; }
+  .create-row input, .btn-primary { width: 100%; }
+  .user-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .user-info { flex-wrap: wrap; }
 }
 </style>

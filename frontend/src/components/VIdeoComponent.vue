@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, watch, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, watch, useTemplateRef } from 'vue'
 import Hls from 'hls.js'
 
 const { src } = defineProps<{ src: string }>()
@@ -27,8 +27,8 @@ function loadSrc(src: string): void {
   }
 }
 
-// Vue 3.5 props 解构后仍然是响应式的，watch 可以直接追踪
-watch(() => src, loadSrc, { immediate: true })
+onMounted(() => loadSrc(src))
+watch(() => src, loadSrc)
 
 onUnmounted(() => hls?.destroy())
 </script>

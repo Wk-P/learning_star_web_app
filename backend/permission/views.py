@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 
+from backend.utils import natural_key
 from .models import MediaPermission
 
 User = get_user_model()
@@ -145,6 +146,43 @@ def _scan_roots() -> dict:
         else:
             roots[mt] = []
     return roots
+
+
+def _build_tree_from_path_lists(path_lists: list) -> list:
+    """Build a nested tree from a list of path arrays."""
+    all_paths: set = set()
+    for path in path_lists:
+        for i in range(1, len(path) + 1):
+            all_paths.add(tuple(path[:i]))
+
+    def build_level(parent: tuple) -> list:
+        depth = len(parent) + 1
+        children = sorted(
+            [p for p in all_paths if len(p) == depth and p[:-1] == parent],
+            key=lambda p: natural_key(p[-1]),
+        )
+        return [
+            {'path': '/'.join(c), 'label': c[-1], 'children': build_level(c)}
+            for c in children
+        ]
+
+    return build_level(())
+
+
+class MediaTreeView(APIView):
+    """GET /api/permission/tree/ — full folder tree per media type, built from actual content."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request: Request):
+        from video.services import get_video_list
+        from audio.services import get_audio_list
+        from pdf.services import get_pdf_list
+
+        return Response({
+            'video': _build_tree_from_path_lists([f['path'] for f in get_video_list()]),
+            'audio': _build_tree_from_path_lists([f['path'] for f in get_audio_list()]),
+            'pdf':   _build_tree_from_path_lists([f['path'] for f in get_pdf_list()]),
+        })
 
 
 class MediaRootsView(APIView):
