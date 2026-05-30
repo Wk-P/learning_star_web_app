@@ -2,6 +2,10 @@
   <div>
     <div class="toolbar">
       <h1 class="page-title" style="margin:0">课程管理</h1>
+      <span v-if="filterSubjectName" class="badge badge-primary" style="font-size:13px">
+        {{ filterSubjectName }}
+        <router-link :to="{ name: 'admin-courses' }" style="margin-left:4px;color:inherit;opacity:0.7">✕</router-link>
+      </span>
       <div class="toolbar-spacer" />
       <button class="btn btn-primary" @click="openCreate">＋ 新增课程</button>
     </div>
@@ -133,23 +137,35 @@
 <script setup lang="ts">
 import { toDateLocal, dateToISOStart, dateToISOEnd } from '@/utils/time'
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { adminCourseApi, adminSubjectApi, adminClassApi, adminUserApi } from '@/api/admin'
 import type { Course, Subject, AdminUserDetail, CourseStatus } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 const { confirm } = useConfirm()
 
 const loading = ref(false)
 const saving = ref(false)
 const showForm = ref(false)
-const courses = ref<Course[]>([])
+const allCourses = ref<Course[]>([])
 const subjects = ref<Subject[]>([])
 const teachers = ref<AdminUserDetail[]>([])
 const editTarget = ref<Course | null>(null)
+
+const filterSubjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
+const filterSubjectName = computed(() => filterSubjectId.value
+  ? subjects.value.find(s => s.id === filterSubjectId.value)?.name ?? ''
+  : ''
+)
+const courses = computed(() =>
+  filterSubjectId.value
+    ? allCourses.value.filter(c => c.subjectId === filterSubjectId.value)
+    : allCourses.value
+)
 
 const form = ref({
   subjectId: null as number | null,
@@ -214,7 +230,7 @@ onMounted(async () => {
       adminSubjectApi.list(),
       adminUserApi.list(),
     ])
-    courses.value = cr.data
+    allCourses.value = cr.data
     subjects.value = sr.data
     teachers.value = ur.data.filter(u => u.role === 'staff')
   } finally { loading.value = false }
@@ -257,12 +273,12 @@ async function handleSave() {
     let savedCourse: Course
     if (editTarget.value) {
       const { data } = await adminCourseApi.update(editTarget.value.id, payload)
-      const i = courses.value.findIndex(c => c.id === editTarget.value!.id)
-      if (i !== -1) courses.value[i] = data
+      const i = allCourses.value.findIndex(c => c.id === editTarget.value!.id)
+      if (i !== -1) allCourses.value[i] = data
       savedCourse = data
     } else {
       const { data } = await adminCourseApi.create(payload)
-      courses.value.unshift(data)
+      allCourses.value.unshift(data)
       savedCourse = data
     }
 
@@ -286,7 +302,7 @@ async function handleDelete(id: number) {
   const ok = await confirm({ title: '删除课程', message: '确认删除该课程？', confirmText: '删除', type: 'danger' })
   if (!ok) return
   await adminCourseApi.delete(id)
-  courses.value = courses.value.filter(c => c.id !== id)
+  allCourses.value = allCourses.value.filter(c => c.id !== id)
   toast.success('删除成功')
 }
 

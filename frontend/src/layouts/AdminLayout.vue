@@ -14,7 +14,6 @@
         <div class="al-right">
           <span class="al-role-badge al-hide-xs">{{ auth.isAdmin ? 'Admin' : 'Staff' }}</span>
           <span class="al-username al-hide-xs">{{ auth.user?.username }}</span>
-          <router-link to="/home" class="al-front-link al-hide-xs">前台 →</router-link>
           <button class="al-pw-btn al-hide-xs" @click="showPwModal = true">修改密码</button>
           <button class="al-logout" @click="handleLogout">退出</button>
           <button class="al-hamburger al-show-xs" @click="mobileNavOpen = !mobileNavOpen">

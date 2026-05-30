@@ -12,6 +12,13 @@ wheels/
 # backend
 db.sqlite3
 
+
+# CI/CD
+deploy.sh
+
+# Claude
+CLAUDE.md
+
 # homework_submissions
 **/homework_submissions/**
 

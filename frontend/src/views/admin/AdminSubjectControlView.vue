@@ -16,7 +16,10 @@
               <span style="font-size:28px">{{ s.icon }}</span>
               <div>
                 <div style="font-size:15px;font-weight:600">{{ s.name }}</div>
-                <div class="text-sm text-muted">{{ s.courseCount }} 门课程</div>
+                <router-link
+                  :to="{ name: 'admin-courses', query: { subjectId: s.id } }"
+                  class="subject-course-link"
+                >{{ s.courseCount }} 门课程 →</router-link>
               </div>
             </div>
             <span class="color-dot" :style="{ background: s.color }" />
@@ -106,4 +109,9 @@ async function handleDelete(id: number) {
 
 <style scoped>
 .color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.subject-course-link {
+  font-size: 12px; color: var(--c-primary); font-weight: 500;
+  transition: color var(--t);
+}
+.subject-course-link:hover { color: var(--c-primary-hover); text-decoration: underline; }
 </style>

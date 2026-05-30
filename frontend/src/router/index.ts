@@ -240,8 +240,16 @@ router.beforeEach(async (to) => {
     }
   }
 
+  const role = auth.user?.role
+  const isStaffOnly = role === 'staff'
+  const isAdmin = role === 'admin'
+
+  // admin 不进台前，直接转管理后台
+  if (isAdmin && (to.path === '/' || to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
+    return { name: 'admin-home' }
+  }
+
   // staff(教师) 访问台前或个人中心时直接跳教师工作台
-  const isStaffOnly = auth.user?.role === 'staff'
   if (isStaffOnly && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
     return { name: 'teacher-home' }
   }
