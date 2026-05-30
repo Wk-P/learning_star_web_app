@@ -9,17 +9,19 @@
     <div v-if="loading" class="skeleton" style="height:200px" />
     <div v-else-if="subjects.length === 0" class="empty"><span class="empty-icon">🗂️</span><p>科目列表为空...</p></div>
     <div v-else class="grid grid-auto">
-      <div v-for="s in subjects" :key="s.id" class="card">
+      <router-link
+        v-for="s in subjects"
+        :key="s.id"
+        :to="{ name: 'admin-courses', query: { subjectId: s.id } }"
+        class="card subject-card"
+      >
         <div class="card-body">
           <div class="flex-between" style="margin-bottom:10px">
             <div class="flex" style="gap:10px;align-items:center">
               <span style="font-size:28px">{{ s.icon }}</span>
               <div>
-                <div style="font-size:15px;font-weight:600">{{ s.name }}</div>
-                <router-link
-                  :to="{ name: 'admin-courses', query: { subjectId: s.id } }"
-                  class="subject-course-link"
-                >{{ s.courseCount }} 门课程 →</router-link>
+                <div style="font-size:15px;font-weight:600;color:var(--c-text)">{{ s.name }}</div>
+                <div class="text-sm text-muted">{{ s.courseCount }} 门课程</div>
               </div>
             </div>
             <span class="color-dot" :style="{ background: s.color }" />
@@ -27,12 +29,12 @@
           <p style="font-size:13px;color:var(--c-text-2);margin-bottom:14px;min-height:36px">
             {{ s.description || '暂无描述' }}
           </p>
-          <div class="flex" style="gap:8px">
+          <div class="flex" style="gap:8px" @click.stop>
             <button class="btn btn-secondary btn-sm" @click="openEdit(s)">编辑</button>
             <button class="btn btn-danger btn-sm" @click="handleDelete(s.id)">删除</button>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
 
     <Teleport to="body">
@@ -109,9 +111,16 @@ async function handleDelete(id: number) {
 
 <style scoped>
 .color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
-.subject-course-link {
-  font-size: 12px; color: var(--c-primary); font-weight: 500;
-  transition: color var(--t);
+
+.subject-card {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow var(--t), transform var(--t), border-color var(--t);
 }
-.subject-course-link:hover { color: var(--c-primary-hover); text-decoration: underline; }
+.subject-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+  border-color: var(--c-primary);
+}
 </style>

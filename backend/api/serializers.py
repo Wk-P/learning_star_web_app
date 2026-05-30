@@ -47,13 +47,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(CamelCaseMixin, serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'user_id', 'username', 'email', 'role']
+        fields = ['id', 'user_id', 'username', 'email', 'role', 'display_name']
 
 
 class AdminUserSerializer(CamelCaseMixin, serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'user_id', 'username', 'email', 'role', 'date_joined', 'is_active']
+        fields = ['id', 'user_id', 'username', 'email', 'role', 'display_name', 'date_joined', 'is_active']
         read_only_fields = ['date_joined', 'user_id']
 
 
@@ -97,7 +97,12 @@ class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
         queryset=User.objects.filter(role='staff'),
         source='teacher', allow_null=True, required=False
     )
-    teacher_name = serializers.CharField(source='teacher.username', read_only=True, default='')
+    teacher_name = serializers.SerializerMethodField()
+
+    def get_teacher_name(self, obj):
+        if not obj.teacher:
+            return ''
+        return obj.teacher.display_name or obj.teacher.username
     status = serializers.SerializerMethodField()
     duration_weeks = serializers.SerializerMethodField()
 
@@ -116,7 +121,8 @@ class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
     def get_duration_weeks(self, obj):
         delta = obj.end_time - obj.start_time
         return max(1, round(delta.days / 7))
-
+    def get_teacher_name(self, obj):
+        return obj.teacher.display_name or obj.teacher.username
 
 # ── CourseFile ────────────────────────────────────────────────────────────────
 
@@ -162,14 +168,15 @@ class ClassSessionSerializer(CamelCaseMixin, serializers.ModelSerializer):
         return obj.title
 
     def get_teacher_name(self, obj):
-        return obj.teacher.username if obj.teacher else ''
+        if not obj.teacher:
+            return ''
+        return obj.teacher.display_name or obj.teacher.username
 
     def get_students(self, obj):
-        return list(
-            Enrollment.objects.filter(course=obj.course)
-            .select_related('user')
-            .values_list('user__username', flat=True)
-        )
+        return [
+            enrollment.user.display_name or enrollment.user.username
+            for enrollment in Enrollment.objects.filter(course=obj.course).select_related('user')
+        ]
 
 
 # ── Homework ──────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views.auth_views import UserMeView, ChangePasswordView
+from .views.auth_views import UserMeView, ChangePasswordView, UpdateDisplayView
 from .views.course_views import (
     SubjectListView, SubjectCoursesView,
     CourseListView, CourseDetailView, CourseEnrollView,
@@ -33,6 +33,7 @@ urlpatterns = [
     # ── 用户自身 ──────────────────────────────────────────────────────────────
     path('users/me/', UserMeView.as_view()),
     path('users/me/change-password/', ChangePasswordView.as_view()),
+    path('users/me/update-display/', UpdateDisplayView.as_view()),
 
     # ── 科目 ──────────────────────────────────────────────────────────────────
     path('subjects/', SubjectListView.as_view()),

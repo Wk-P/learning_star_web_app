@@ -16,6 +16,7 @@ class User(AbstractUser):
         ('staff', '教师'),
         ('admin', '管理员'),
     ]
+    display_name = models.CharField(max_length=50, blank=True, default='')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     user_id = models.CharField(
         max_length=8, unique=True, blank=True,

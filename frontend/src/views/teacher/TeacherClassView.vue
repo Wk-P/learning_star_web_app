@@ -107,7 +107,7 @@ onMounted(async () => {
     attendance.value = ar.data
     const courseRes = await teacherApi.courseDetail(courseId)
     setSegments([
-      { label: `${courseRes.data.name} — 课节管理`, path: `/teacher/courses/${courseId}/classes` },
+      { label: `${courseRes.data.name} — 课节管理`, path: `/admin/teacher/courses/${courseId}/classes` },
       { label: cls.value.title },
     ])
     form.value = {

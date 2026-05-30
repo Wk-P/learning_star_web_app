@@ -45,6 +45,13 @@ class TeacherCourseListView(APIView):
         courses = Course.objects.filter(id__in=ids).order_by('start_time')
         return Response(CourseSerializer(courses, many=True, context={'request': request}).data)
 
+    def post(self, request):
+        data = {**request.data, 'teacherId': request.user.id}
+        s = CourseSerializer(data=data, context={'request': request})
+        s.is_valid(raise_exception=True)
+        s.save()
+        return Response(s.data, status=status.HTTP_201_CREATED)
+
 
 class TeacherCourseDetailView(APIView):
     permission_classes = [IsStaff]

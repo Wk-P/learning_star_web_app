@@ -11,11 +11,12 @@
     <div v-else-if="filtered.length === 0" class="empty"><span class="empty-icon">👥</span><p>用户列表为空...</p></div>
     <div v-else class="table-wrap">
       <table class="table">
-        <thead><tr><th>用户ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>操作</th></tr></thead>
+        <thead><tr><th>用户ID</th><th>用户名</th><th>别名</th><th>邮箱</th><th>角色</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="u in filtered" :key="u.id">
             <td class="font-mono text-sm text-muted">{{ u.userId }}</td>
             <td style="font-weight:500">{{ u.username }}</td>
+            <td class="text-secondary">{{ u.displayName || '—' }}</td>
             <td class="text-secondary">{{ u.email || '—' }}</td>
             <td>
               <select
@@ -33,6 +34,7 @@
               <div class="table-actions">
                 <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/users/${u.id}/courses`)">课程</button>
                 <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/users/${u.id}/homework`)">作业</button>
+                <button class="btn btn-secondary btn-sm" @click="openEditName(u)">别名</button>
                 <button class="btn btn-secondary btn-sm" @click="handleReset(u.id)">重置密码</button>
                 <button class="btn btn-danger btn-sm" @click="handleDelete(u.id)">删除</button>
               </div>
@@ -73,6 +75,7 @@
           <div class="modal-header"><span>新增用户</span><button class="modal-close" @click="showCreate = false">✕</button></div>
           <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding-top:20px">
             <div class="field"><label class="field-label">用户名</label><input v-model="form.username" class="input" /></div>
+            <div class="field"><label class="field-label">别名（可选）</label><input v-model="form.displayName" class="input" placeholder="留空则显示用户名" maxlength="50" /></div>
             <div class="field"><label class="field-label">邮箱</label><input v-model="form.email" type="email" class="input" /></div>
             <div class="field">
               <label class="field-label">角色</label>
@@ -87,6 +90,28 @@
           <div class="modal-footer">
             <button class="btn btn-secondary" @click="showCreate = false">取消</button>
             <button class="btn btn-primary" :class="{ loading: saving }" @click="handleCreate">创建</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 编辑别名弹窗 -->
+    <Teleport to="body">
+      <div v-if="editNameTarget" class="modal-backdrop" @click.self="editNameTarget = null">
+        <div class="modal" style="max-width:400px">
+          <div class="modal-header">
+            <span>编辑别名 — {{ editNameTarget.username }}</span>
+            <button class="modal-close" @click="editNameTarget = null">✕</button>
+          </div>
+          <div class="modal-body" style="padding-top:20px">
+            <div class="field">
+              <label class="field-label">别名（留空则显示用户名）</label>
+              <input v-model="editNameInput" class="input" maxlength="50" placeholder="输入别名" @keydown.enter="handleSaveName" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="editNameTarget = null">取消</button>
+            <button class="btn btn-primary" :class="{ loading: savingName }" @click="handleSaveName">保存</button>
           </div>
         </div>
       </div>
@@ -106,23 +131,58 @@ const loading = ref(false); const saving = ref(false); const showCreate = ref(fa
 const search = ref(''); const users = ref<AdminUserDetail[]>([])
 const resetResult = ref({ show: false, password: '' })
 const copied = ref(false)
+const editNameTarget = ref<AdminUserDetail | null>(null)
+const editNameInput = ref('')
+const savingName = ref(false)
 
-async function copyPassword() {
-  try {
-    await navigator.clipboard.writeText(resetResult.value.password)
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-  } catch {
-    toast.error('复制失败，请手动复制')
+function copyPassword() {
+  const text = resetResult.value.password
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      copied.value = true
+      setTimeout(() => { copied.value = false }, 2000)
+    })
+    return
   }
+  // HTTP 环境回退方案
+  const el = document.createElement('textarea')
+  el.value = text
+  el.style.position = 'fixed'
+  el.style.opacity = '0'
+  document.body.appendChild(el)
+  el.select()
+  document.execCommand('copy')
+  document.body.removeChild(el)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
 }
-const form = ref({ username: '', email: '', role: 'user' as UserRole, password: '' })
+const form = ref({ username: '', email: '', role: 'user' as UserRole, password: '', displayName: '' })
 
 const filtered = computed(() => users.value.filter(u => u.username.includes(search.value)))
 
 onMounted(async () => { loading.value = true; try { users.value = (await adminUserApi.list()).data } finally { loading.value = false } })
 
-function openCreate() { form.value = { username: '', email: '', role: 'user', password: '' }; showCreate.value = true }
+function openCreate() { form.value = { username: '', email: '', role: 'user', password: '', displayName: '' }; showCreate.value = true }
+
+function openEditName(u: AdminUserDetail) {
+  editNameTarget.value = u
+  editNameInput.value = u.displayName ?? ''
+}
+
+async function handleSaveName() {
+  if (!editNameTarget.value) return
+  savingName.value = true
+  try {
+    await adminUserApi.update(editNameTarget.value.id, { displayName: editNameInput.value.trim() })
+    editNameTarget.value.displayName = editNameInput.value.trim()
+    editNameTarget.value = null
+    toast.success('别名已更新')
+  } catch {
+    toast.error('保存失败')
+  } finally {
+    savingName.value = false
+  }
+}
 
 async function handleRoleChange(user: AdminUserDetail, newRole: UserRole) {
   try {

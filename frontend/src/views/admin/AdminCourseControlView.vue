@@ -25,9 +25,9 @@
             <td class="text-secondary">{{ c.durationWeeks }} 周</td>
             <td>
               <div class="table-actions">
-                <button class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
+                <button v-if="canEdit(c)" class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
                 <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${c.id}/classes`)">课节</button>
-                <button class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
+                <button v-if="canEdit(c)" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
               </div>
             </td>
           </tr>
@@ -44,8 +44,8 @@
           </div>
           <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;padding-top:20px">
 
-            <!-- 科目 -->
-            <div class="field">
+            <!-- 科目：从科目页进入时已确定，新增时隐藏；编辑时始终显示 -->
+            <div v-if="editTarget || !filterSubjectId" class="field">
               <label class="field-label">所属科目</label>
               <select v-model="form.subjectId" class="select">
                 <option :value="null">— 不归属科目 —</option>
@@ -58,7 +58,7 @@
               <label class="field-label">主讲教师</label>
               <select v-model="form.teacherId" class="select">
                 <option :value="null">— 暂不指定 —</option>
-                <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.username }}</option>
+                <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.displayName || t.username }}</option>
               </select>
             </div>
 
@@ -140,12 +140,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
+import { useAuthStore } from '@/stores/auth'
 import { adminCourseApi, adminSubjectApi, adminClassApi, adminUserApi } from '@/api/admin'
 import type { Course, Subject, AdminUserDetail, CourseStatus } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const auth = useAuthStore()
+
+const canEdit = (c: Course) => auth.isAdmin || c.teacherId === auth.user?.id
 const { confirm } = useConfirm()
 
 const loading = ref(false)
@@ -209,7 +213,7 @@ function parseSchedule(schedule: string) {
   if (!schedule) return
 
   // 提取时间段
-  const timeMatch = schedule.match(/(\d{2}:\d{2})[–\-](\d{2}:\d{2})/)
+  const timeMatch = schedule.match(/(\d{2}:\d{2})[–-](\d{2}:\d{2})/)
   if (timeMatch) {
     scheduleStart.value = timeMatch[1] ?? ''
     scheduleEnd.value = timeMatch[2] ?? ''
@@ -238,7 +242,7 @@ onMounted(async () => {
 
 function openCreate() {
   editTarget.value = null
-  form.value = { subjectId: null, teacherId: null, name: '', description: '', schedule: '', startTime: '', endTime: '' }
+  form.value = { subjectId: filterSubjectId.value, teacherId: null, name: '', description: '', schedule: '', startTime: '', endTime: '' }
   parseSchedule('')
   showForm.value = true
 }

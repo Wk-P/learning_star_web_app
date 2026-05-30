@@ -51,10 +51,12 @@ async function handleLogin() {
     await auth.login(form.value)
     enrollment.fetchEnrollments()
     const defaultRedirect = auth.isAdmin ? '/admin/home'
-      : auth.user?.role === 'staff' ? '/teacher/home'
+      : auth.user?.role === 'staff' ? '/admin/courses'
       : '/home'
     const redirect = (route.query.redirect as string) || defaultRedirect
     router.push(redirect)
+  } catch {
+    toast.error('用户名或密码错误')
   } finally {
     loading.value = false
   }

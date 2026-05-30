@@ -73,7 +73,7 @@ onMounted(async () => {
       if (s.graded && s.score != null) scores.value[s.id] = s.score
     }
     setSegments([
-      { label: `${courseRes.data.name} — 作业管理`, path: `/teacher/courses/${courseId}/homework` },
+      { label: `${courseRes.data.name} — 作业管理`, path: `/admin/teacher/courses/${courseId}/homework` },
       { label: `${hwRes.data.name} 提交评分` },
     ])
   } finally { loading.value = false }

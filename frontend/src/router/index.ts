@@ -20,205 +20,83 @@ const router = createRouter({
       meta: { public: true },
     },
 
-    // ── HomeLayout：课程浏览中心 ──────────────────────────────────────────────
+    // ── HomeLayout：学生课程浏览中心 ─────────────────────────────────────────
     {
       path: '/',
       component: () => import('@/layouts/HomeLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         { path: '', redirect: '/home' },
-        {
-          path: 'home',
-          name: 'home',
-          component: () => import('@/views/home/HomeView.vue'),
-        },
-        {
-          path: 'courses',
-          name: 'course-list',
-          component: () => import('@/views/courses/CourseListView.vue'),
-        },
-        {
-          path: 'courses/subject/:subjectId',
-          name: 'subject-courses',
-          component: () => import('@/views/courses/SubjectCoursesView.vue'),
-        },
-        {
-          path: 'courses/:courseId',
-          name: 'course',
-          component: () => import('@/views/courses/CourseView.vue'),
-        },
-        {
-          path: 'courses/:courseId/classes/:classId',
-          name: 'class',
-          component: () => import('@/views/courses/ClassView.vue'),
-        },
+        { path: 'home', name: 'home', component: () => import('@/views/home/HomeView.vue') },
+        { path: 'courses', name: 'course-list', component: () => import('@/views/courses/CourseListView.vue') },
+        { path: 'courses/subject/:subjectId', name: 'subject-courses', component: () => import('@/views/courses/SubjectCoursesView.vue') },
+        { path: 'courses/:courseId', name: 'course', component: () => import('@/views/courses/CourseView.vue') },
+        { path: 'courses/:courseId/classes/:classId', name: 'class', component: () => import('@/views/courses/ClassView.vue') },
       ],
     },
 
-    // ── UserLayout：个人账户中心 ──────────────────────────────────────────────
+    // ── UserLayout：学生个人账户中心 ─────────────────────────────────────────
     {
       path: '/user',
       component: () => import('@/layouts/UserLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         { path: '', redirect: '/user/profile' },
-        {
-          path: 'profile',
-          name: 'user-profile',
-          component: () => import('@/views/user/UserProfileView.vue'),
-        },
-        {
-          path: 'courses',
-          name: 'user-courses',
-          component: () => import('@/views/user/UserCourseListView.vue'),
-        },
-        {
-          path: 'homework',
-          name: 'user-homework-list',
-          component: () => import('@/views/user/UserHomeworkListView.vue'),
-        },
-        {
-          path: 'homework/:homeworkId',
-          name: 'homework',
-          component: () => import('@/views/user/HomeworkView.vue'),
-        },
-        {
-          path: 'scores',
-          name: 'user-scores',
-          component: () => import('@/views/user/UserScoresView.vue'),
-        },
+        { path: 'profile', name: 'user-profile', component: () => import('@/views/user/UserProfileView.vue') },
+        { path: 'courses', name: 'user-courses', component: () => import('@/views/user/UserCourseListView.vue') },
+        { path: 'homework', name: 'user-homework-list', component: () => import('@/views/user/UserHomeworkListView.vue') },
+        { path: 'homework/:homeworkId', name: 'homework', component: () => import('@/views/user/HomeworkView.vue') },
+        { path: 'scores', name: 'user-scores', component: () => import('@/views/user/UserScoresView.vue') },
       ],
     },
 
-    // ── TeacherLayout：教师工作台（仅 staff） ────────────────────────────────
-    {
-      path: '/teacher',
-      component: () => import('@/layouts/TeacherLayout.vue'),
-      meta: { requiresAuth: true, requiresStaff: true },
-      children: [
-        { path: '', redirect: '/teacher/home' },
-        {
-          path: 'home',
-          name: 'teacher-home',
-          component: () => import('@/views/teacher/TeacherHomeView.vue'),
-        },
-        {
-          path: 'courses/:courseId/classes',
-          name: 'teacher-course-classes',
-          component: () => import('@/views/teacher/TeacherCourseClassListView.vue'),
-        },
-        {
-          path: 'courses/:courseId/classes/:classId',
-          name: 'teacher-class',
-          component: () => import('@/views/teacher/TeacherClassView.vue'),
-        },
-        {
-          path: 'courses/:courseId/homework',
-          name: 'teacher-homework',
-          component: () => import('@/views/teacher/TeacherHomeworkListView.vue'),
-        },
-        {
-          path: 'courses/:courseId/homework/:homeworkId/submissions',
-          name: 'teacher-submissions',
-          component: () => import('@/views/teacher/TeacherSubmissionsView.vue'),
-        },
-      ],
-    },
-
-    // ── AdminLayout：管理后台（仅 admin） ─────────────────────────────────────
+    // ── AdminLayout：统一后台（admin + staff 共用，按 role 精细化控制） ───────
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         { path: '', redirect: '/admin/home' },
+
+        // admin 专属首页
         {
           path: 'home',
           name: 'admin-home',
           component: () => import('@/views/admin/AdminHomeView.vue'),
+          meta: { requiresAdminOnly: true },
         },
 
-        // 用户管理（仅 admin）
-        {
-          path: 'users',
-          name: 'admin-users',
-          component: () => import('@/views/admin/AdminUserControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'users/:userId/courses',
-          name: 'admin-user-courses',
-          component: () => import('@/views/admin/AdminUserCourseListControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'users/:userId/courses/:courseId',
-          name: 'admin-user-course',
-          component: () => import('@/views/admin/AdminUserCourseControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'users/:userId/courses/:courseId/classes/:classId',
-          name: 'admin-user-class',
-          component: () => import('@/views/admin/AdminUserClassControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'users/:userId/homework',
-          name: 'admin-user-homework-list',
-          component: () => import('@/views/admin/AdminUserHomeworkListControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'users/:userId/homework/:homeworkId',
-          name: 'admin-user-homework',
-          component: () => import('@/views/admin/AdminUserHomeworkControlView.vue'),
-          meta: { requiresAdmin: true },
-        },
+        // ── 用户管理（仅 admin） ──────────────────────────────────────────────
+        { path: 'users', name: 'admin-users', component: () => import('@/views/admin/AdminUserControlView.vue'), meta: { requiresAdminOnly: true } },
+        { path: 'users/:userId/courses', name: 'admin-user-courses', component: () => import('@/views/admin/AdminUserCourseListControlView.vue'), meta: { requiresAdminOnly: true } },
+        { path: 'users/:userId/courses/:courseId', name: 'admin-user-course', component: () => import('@/views/admin/AdminUserCourseControlView.vue'), meta: { requiresAdminOnly: true } },
+        { path: 'users/:userId/courses/:courseId/classes/:classId', name: 'admin-user-class', component: () => import('@/views/admin/AdminUserClassControlView.vue'), meta: { requiresAdminOnly: true } },
+        { path: 'users/:userId/homework', name: 'admin-user-homework-list', component: () => import('@/views/admin/AdminUserHomeworkListControlView.vue'), meta: { requiresAdminOnly: true } },
+        { path: 'users/:userId/homework/:homeworkId', name: 'admin-user-homework', component: () => import('@/views/admin/AdminUserHomeworkControlView.vue'), meta: { requiresAdminOnly: true } },
 
-        // 科目管理（admin + staff）
-        {
-          path: 'subjects',
-          name: 'admin-subjects',
-          component: () => import('@/views/admin/AdminSubjectControlView.vue'),
-        },
+        // ── 科目管理（admin + staff） ─────────────────────────────────────────
+        { path: 'subjects', name: 'admin-subjects', component: () => import('@/views/admin/AdminSubjectControlView.vue') },
 
-        // 课程管理（admin + staff）
-        {
-          path: 'courses',
-          name: 'admin-courses',
-          component: () => import('@/views/admin/AdminCourseControlView.vue'),
-        },
-        {
-          path: 'courses/:courseId/classes',
-          name: 'admin-course-classes',
-          component: () => import('@/views/admin/AdminCourseClassListView.vue'),
-        },
-        {
-          path: 'courses/:courseId/classes/:classId',
-          name: 'admin-class',
-          component: () => import('@/views/admin/AdminClassControlView.vue'),
-        },
+        // ── 课程管理（admin + staff，编辑权限由视图内控制） ──────────────────
+        { path: 'courses', name: 'admin-courses', component: () => import('@/views/admin/AdminCourseControlView.vue') },
+        { path: 'courses/:courseId/classes', name: 'admin-course-classes', component: () => import('@/views/admin/AdminCourseClassListView.vue') },
+        { path: 'courses/:courseId/classes/:classId', name: 'admin-class', component: () => import('@/views/admin/AdminClassControlView.vue') },
 
-        // 作业管理（admin + staff）
-        {
-          path: 'homework',
-          name: 'admin-homework-list',
-          component: () => import('@/views/admin/AdminHomeworkListView.vue'),
-        },
-        {
-          path: 'homework/:homeworkId',
-          name: 'admin-homework',
-          component: () => import('@/views/admin/AdminHomeworkView.vue'),
-        },
+        // ── 作业管理（admin + staff） ─────────────────────────────────────────
+        { path: 'homework', name: 'admin-homework-list', component: () => import('@/views/admin/AdminHomeworkListView.vue') },
+        { path: 'homework/:homeworkId', name: 'admin-homework', component: () => import('@/views/admin/AdminHomeworkView.vue') },
+
+        // ── 教师专属视图（staff + admin，原 /teacher/* 迁移至此） ────────────
+        { path: 'my-courses', name: 'teacher-home', component: () => import('@/views/teacher/TeacherHomeView.vue') },
+        { path: 'teacher/courses/:courseId/classes', name: 'teacher-course-classes', component: () => import('@/views/teacher/TeacherCourseClassListView.vue') },
+        { path: 'teacher/courses/:courseId/classes/:classId', name: 'teacher-class', component: () => import('@/views/teacher/TeacherClassView.vue') },
+        { path: 'teacher/courses/:courseId/homework', name: 'teacher-homework', component: () => import('@/views/teacher/TeacherHomeworkListView.vue') },
+        { path: 'teacher/courses/:courseId/homework/:homeworkId/submissions', name: 'teacher-submissions', component: () => import('@/views/teacher/TeacherSubmissionsView.vue') },
       ],
     },
 
     // ── 404 ───────────────────────────────────────────────────────────────────
-    {
-      path: '/:pathMatch(.*)*',
-      redirect: '/error',
-    },
+    { path: '/:pathMatch(.*)*', redirect: '/error' },
   ],
 })
 
@@ -228,37 +106,29 @@ router.beforeEach(async (to) => {
 
   if (to.meta.public) return true
 
-  // 路由守卫1：检查登录
   if (!auth.isLoggedIn) return { name: 'login', query: { redirect: to.fullPath } }
 
-  // 首次访问时加载用户信息
   if (!auth.user) {
-    try {
-      await auth.fetchMe()
-    } catch {
-      return { name: 'login' }
-    }
+    try { await auth.fetchMe() }
+    catch { return { name: 'login' } }
   }
 
   const role = auth.user?.role
-  const isStaffOnly = role === 'staff'
   const isAdmin = role === 'admin'
+  const isStaff = role === 'staff'
 
-  // admin 不进台前，直接转管理后台
-  if (isAdmin && (to.path === '/' || to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
-    return { name: 'admin-home' }
+  // admin / staff 不进学生台前和个人中心
+  if (auth.isStaff && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
+    return { name: isAdmin ? 'admin-home' : 'admin-courses' }
   }
 
-  // staff(教师) 访问台前或个人中心时直接跳教师工作台
-  if (isStaffOnly && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
-    return { name: 'teacher-home' }
+  // 仅 admin 可访问的页面，staff 重定向到课程管理
+  if (to.meta.requiresAdminOnly && !isAdmin) {
+    return auth.isStaff ? { name: 'admin-courses' } : { name: 'error' }
   }
 
-  // staff-only 检查（仅 role='staff'，不含 admin）
-  if (to.meta.requiresStaff && !isStaffOnly) return { name: 'error' }
-
-  // admin-only 检查
-  if (to.meta.requiresAdmin && !auth.isAdmin) return { name: 'error' }
+  // admin + staff 才可访问后台（学生不能进）
+  if (to.meta.requiresAdmin && !auth.isStaff) return { name: 'error' }
 
   return true
 })

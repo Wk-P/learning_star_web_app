@@ -82,7 +82,9 @@ http.interceptors.response.use(
 function redirectToLogin() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
-  window.location.href = '/login'
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
 }
 
 export default http

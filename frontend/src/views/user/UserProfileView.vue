@@ -7,6 +7,29 @@
         <div v-else class="desc-list">
           <div class="desc-row"><span class="desc-label">用户 ID</span><span class="desc-value font-mono">{{ auth.user.userId }}</span></div>
           <div class="desc-row"><span class="desc-label">用户名</span><span class="desc-value">{{ auth.user.username }}</span></div>
+          <div class="desc-row">
+            <span class="desc-label">别名</span>
+            <span class="desc-value" style="display:flex;align-items:center;gap:10px">
+              <span v-if="!editingName">{{ auth.user.displayName || '未设置' }}</span>
+              <input
+                v-else
+                v-model="nameInput"
+                class="input"
+                style="height:32px;padding:0 10px;max-width:220px"
+                placeholder="留空则使用用户名"
+                maxlength="50"
+                @keydown.enter="saveName"
+                @keydown.esc="cancelEdit"
+              />
+              <template v-if="!editingName">
+                <button class="btn btn-secondary btn-sm" @click="startEdit">编辑</button>
+              </template>
+              <template v-else>
+                <button class="btn btn-primary btn-sm" :class="{ loading: saving }" @click="saveName">保存</button>
+                <button class="btn btn-secondary btn-sm" @click="cancelEdit">取消</button>
+              </template>
+            </span>
+          </div>
           <div class="desc-row"><span class="desc-label">邮箱</span><span class="desc-value">{{ auth.user.email || '未设置' }}</span></div>
           <div class="desc-row">
             <span class="desc-label">角色</span>
@@ -21,10 +44,44 @@
   </div>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEnrollmentStore } from '@/stores/enrollment'
+import { useToast } from '@/composables/useToast'
+import { updateDisplayName } from '@/api/auth'
 import type { UserRole } from '@/types'
-const auth = useAuthStore(); const enrollment = useEnrollmentStore()
+
+const auth = useAuthStore()
+const enrollment = useEnrollmentStore()
+const toast = useToast()
+
+const editingName = ref(false)
+const nameInput = ref('')
+const saving = ref(false)
+
+function startEdit() {
+  nameInput.value = auth.user?.displayName ?? ''
+  editingName.value = true
+}
+
+function cancelEdit() {
+  editingName.value = false
+}
+
+async function saveName() {
+  saving.value = true
+  try {
+    await updateDisplayName(nameInput.value.trim())
+    await auth.fetchMe()
+    editingName.value = false
+    toast.success('别名已更新')
+  } catch {
+    toast.error('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
 const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '管理员' }[r])
 const roleClass = (r: UserRole) => ({ user: 'badge-info', staff: 'badge-warning', admin: 'badge-danger' }[r])
 </script>

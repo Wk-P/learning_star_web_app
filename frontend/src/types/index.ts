@@ -7,6 +7,7 @@ export interface User {
   username: string
   email: string
   role: UserRole
+  displayName: string
 }
 
 // ── 科目 ──────────────────────────────────────────────────────────────────────

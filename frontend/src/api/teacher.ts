@@ -6,6 +6,7 @@ const base = (courseId: number) => `/api/teacher/courses/${courseId}`
 export const teacherApi = {
   // 课程
   courses: () => http.get<Course[]>('/api/teacher/courses/'),
+  createCourse: (data: object) => http.post<Course>('/api/teacher/courses/', data),
   courseDetail: (courseId: number) => http.get<Course>(`${base(courseId)}/`),
   updateCourse: (courseId: number, data: Partial<Course>) =>
     http.patch<Course>(`${base(courseId)}/`, data),

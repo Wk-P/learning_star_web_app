@@ -3,7 +3,7 @@
     <div class="flex-between" style="margin-bottom:20px;align-items:center">
       <h1 class="page-title" style="margin:0">作业 & 评分</h1>
       <div class="flex" style="gap:10px">
-        <button class="btn btn-secondary" @click="router.push(`/teacher/courses/${courseId}/classes`)">← 课节管理</button>
+        <button class="btn btn-secondary" @click="router.push(`/admin/teacher/courses/${courseId}/classes`)">← 课节管理</button>
         <button class="btn btn-primary" @click="openCreate">＋ 新增作业</button>
       </div>
     </div>
@@ -22,7 +22,7 @@
             <td>
               <div class="table-actions">
                 <button class="btn btn-secondary btn-sm" @click="openEdit(hw)">编辑</button>
-                <button class="btn btn-primary btn-sm" @click="router.push(`/teacher/courses/${courseId}/homework/${hw.id}/submissions`)">评分</button>
+                <button class="btn btn-primary btn-sm" @click="router.push(`/admin/teacher/courses/${courseId}/homework/${hw.id}/submissions`)">评分</button>
                 <button class="btn btn-danger btn-sm" @click="handleDelete(hw.id)">删除</button>
               </div>
             </td>

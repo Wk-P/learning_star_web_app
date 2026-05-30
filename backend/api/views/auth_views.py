@@ -44,6 +44,18 @@ class ChangePasswordView(APIView):
         request.user.save()
         return Response({'detail': '密码修改成功'})
 
+class UpdateDisplayView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        display_name = request.data.get('displayName', '').strip()
+        if len(display_name) > 50:
+            return Response({'detail': '显示名称不能超过50个字符'}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.display_name = display_name
+        request.user.save()
+        return Response({'detail': '显示名称更新成功'})
+
 
 def _generate_password(length: int = 12) -> str:
     alphabet = string.ascii_letters + string.digits
