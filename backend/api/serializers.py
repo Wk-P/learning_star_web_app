@@ -136,9 +136,6 @@ class CourseFileSerializer(CamelCaseMixin, serializers.ModelSerializer):
         fields = ['id', 'name', 'url']
 
     def get_url(self, obj):
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
         return obj.file.url if obj.file else ''
 
 
@@ -223,9 +220,6 @@ class HomeworkSubmissionSerializer(CamelCaseMixin, serializers.ModelSerializer):
         fields = ['id', 'homework_id', 'user_id', 'submitted_at', 'file_url', 'file_name', 'score', 'graded']
 
     def get_file_url(self, obj):
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
         return obj.file.url if obj.file else ''
 
 

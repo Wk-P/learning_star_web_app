@@ -43,25 +43,6 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">出勤表</div>
-        <div class="card-body">
-          <div v-if="attendance.length === 0" class="empty"><span class="empty-icon">📋</span><p>出勤记录为空...</p></div>
-          <div v-else class="table-wrap">
-            <table class="table">
-              <thead><tr><th>用户 ID</th><th>出勤</th><th>备注</th></tr></thead>
-              <tbody>
-                <tr v-for="r in attendance" :key="r.userId">
-                  <td class="font-mono">{{ r.userId }}</td>
-                  <td><label class="toggle"><input type="checkbox" v-model="r.present" /><span class="toggle-slider" /></label></td>
-                  <td><input v-model="r.note" class="input" style="height:30px" /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <button class="btn btn-secondary mt-12" :class="{ loading: savingAtt }" @click="handleSaveAtt">保存出勤</button>
-        </div>
-      </div>
     </template>
   </div>
 </template>
@@ -70,16 +51,15 @@ import { toDatetimeLocal, datetimeLocalToISO } from '@/utils/time'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { adminClassApi, adminCourseApi, adminUserApi } from '@/api/admin'
+import { adminClassApi, adminUserApi } from '@/api/admin'
 import { useAuthStore } from '@/stores/auth'
-import type { ClassSession, AttendanceRecord, AdminUserDetail, UserRole } from '@/types'
+import type { ClassSession, AdminUserDetail, UserRole } from '@/types'
 const route = useRoute(); const toast = useToast(); const auth = useAuthStore()
 const courseId = Number(route.params.courseId); const classId = Number(route.params.classId)
-const loading = ref(false); const saving = ref(false); const savingAtt = ref(false)
+const loading = ref(false); const saving = ref(false)
 const uploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const cls = ref<ClassSession | null>(null)
-const attendance = ref<AttendanceRecord[]>([])
 const teachers = ref<AdminUserDetail[]>([])
 const form = ref({ classTime: '', meetingUrl: '', teacherId: null as number | null })
 
@@ -88,12 +68,8 @@ const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '�
 onMounted(async () => {
   loading.value = true
   try {
-    const [cr, ar] = await Promise.all([
-      adminClassApi.get(courseId, classId),
-      adminCourseApi.attendance(courseId, classId),
-    ])
+    const cr = await adminClassApi.get(courseId, classId)
     cls.value = cr.data
-    attendance.value = ar.data
     if (auth.isAdmin) {
       const ur = await adminUserApi.list()
       teachers.value = ur.data.filter((u: AdminUserDetail) => u.role === 'staff' || u.role === 'admin')
@@ -107,8 +83,14 @@ onMounted(async () => {
     }
   } finally { loading.value = false }
 })
-async function handleSave() { saving.value = true; try { await adminClassApi.update(courseId, classId, { ...form.value, classTime: datetimeLocalToISO(form.value.classTime) }); toast.success('保存成功') } finally { saving.value = false } }
-async function handleSaveAtt() { savingAtt.value = true; try { await adminCourseApi.updateAttendance(courseId, classId, attendance.value); toast.success('出勤保存成功') } finally { savingAtt.value = false } }
+async function handleSave() {
+  saving.value = true
+  try {
+    const { data } = await adminClassApi.update(courseId, classId, { ...form.value, classTime: datetimeLocalToISO(form.value.classTime) })
+    cls.value = data
+    toast.success('保存成功')
+  } finally { saving.value = false }
+}
 
 async function handleUpload(e: Event) {
   const input = e.target as HTMLInputElement

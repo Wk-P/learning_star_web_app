@@ -11,36 +11,57 @@
       <span class="empty-icon">📅</span>
       <p>该课程暂无课节，点击右上角新增</p>
     </div>
-    <div v-else class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>课节</th>
-            <th>上课时间</th>
-            <th>讲课人</th>
-            <th>会议室</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="cls in classes" :key="cls.id">
-            <td style="font-weight:500">{{ cls.title }}</td>
-            <td class="text-secondary">{{ fmt(cls.classTime) }}</td>
-            <td class="text-secondary">{{ cls.teacherName || '—' }}</td>
-            <td>
-              <a v-if="cls.meetingUrl" :href="cls.meetingUrl" target="_blank" class="btn btn-link btn-sm">链接</a>
-              <span v-else class="text-muted">—</span>
-            </td>
-            <td>
-              <div class="table-actions">
-                <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${courseId}/classes/${cls.id}`)">编辑</button>
-                <button class="btn btn-danger btn-sm" @click="handleDelete(cls.id)">删除</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <template v-else>
+      <!-- 桌面表格 -->
+      <div class="table-wrap cls-table">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>课节</th>
+              <th>上课时间</th>
+              <th>讲课人</th>
+              <th>会议室</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="cls in classes" :key="cls.id">
+              <td style="font-weight:500">{{ cls.title }}</td>
+              <td class="text-secondary">{{ fmt(cls.classTime) }}</td>
+              <td class="text-secondary">{{ cls.teacherName || '—' }}</td>
+              <td>
+                <a v-if="cls.meetingUrl" :href="cls.meetingUrl" target="_blank" class="btn btn-link btn-sm">链接</a>
+                <span v-else class="text-muted">—</span>
+              </td>
+              <td>
+                <div class="table-actions">
+                  <button v-if="auth.isAdmin || canManageCourse" class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${courseId}/classes/${cls.id}`)">编辑</button>
+                  <button v-if="auth.isAdmin || cls.teacherId === auth.user?.id" class="btn btn-danger btn-sm" @click="handleDelete(cls.id)">删除</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 移动端卡片 -->
+      <div class="cls-cards">
+        <div v-for="cls in classes" :key="cls.id" class="cls-card">
+          <div class="cls-card-header">
+            <span style="font-weight:600;font-size:15px">{{ cls.title }}</span>
+            <a v-if="cls.meetingUrl" :href="cls.meetingUrl" target="_blank" class="btn btn-link btn-sm">会议室</a>
+          </div>
+          <div class="cls-card-meta">
+            <span class="text-secondary text-sm">{{ fmt(cls.classTime) }}</span>
+            <span v-if="cls.teacherName" class="text-secondary text-sm">{{ cls.teacherName }}</span>
+          </div>
+          <div class="cls-card-actions">
+            <button v-if="auth.isAdmin || canManageCourse" class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${courseId}/classes/${cls.id}`)">编辑</button>
+            <button v-if="auth.isAdmin || cls.teacherId === auth.user?.id" class="btn btn-danger btn-sm" @click="handleDelete(cls.id)">删除</button>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 新增课节弹窗 -->
     <Teleport to="body">
@@ -191,3 +212,30 @@ async function handleDelete(classId: number) {
 
 
 </script>
+
+<style scoped>
+.cls-cards { display: none; }
+
+@media (max-width: 700px) {
+  .cls-table { display: none; }
+  .cls-cards {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cls-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r);
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .cls-card-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .cls-card-meta {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .cls-card-actions {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+}
+</style>

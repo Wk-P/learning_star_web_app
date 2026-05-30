@@ -14,6 +14,8 @@ export const authApi = {
     http.post('/api/users/me/change-password/', { oldPassword, newPassword }),
 }
 
-export const updateDisplayName = (displayName: string) => {
-  return http.patch('/api/users/me/update-display/', { displayName });
-}
+export const updateDisplayName = (displayName: string) =>
+  http.patch('/api/users/me/update-display/', { displayName })
+
+export const updateUsername = (username: string) =>
+  http.patch('/api/users/me/update-username/', { username })

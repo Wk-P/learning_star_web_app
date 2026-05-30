@@ -12,28 +12,51 @@
 
     <div v-if="loading" class="skeleton" style="height:200px" />
     <div v-else-if="courses.length === 0" class="empty"><span class="empty-icon">📖</span><p>课程列表为空...</p></div>
-    <div v-else class="table-wrap">
-      <table class="table">
-        <thead><tr><th>科目</th><th>课程名称</th><th>主讲教师</th><th>上课日程</th><th>状态</th><th>时长</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="c in courses" :key="c.id">
-            <td class="text-secondary text-sm">{{ c.subjectName || '—' }}</td>
-            <td style="font-weight:500">{{ c.name }}</td>
-            <td class="text-secondary">{{ c.teacherName || '—' }}</td>
-            <td class="text-secondary">{{ c.schedule || '—' }}</td>
-            <td><span :class="['badge', statusBadge(c.status)]">{{ statusLabel(c.status) }}</span></td>
-            <td class="text-secondary">{{ c.durationWeeks }} 周</td>
-            <td>
-              <div class="table-actions">
-                <button class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
-                <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${c.id}/classes`)">课节</button>
-                <button v-if="canDelete()" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <template v-else>
+      <!-- 桌面表格 -->
+      <div class="table-wrap course-table">
+        <table class="table">
+          <thead><tr><th>科目</th><th>课程名称</th><th>主讲教师</th><th>上课日程</th><th>状态</th><th>时长</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-for="c in courses" :key="c.id">
+              <td class="text-secondary text-sm">{{ c.subjectName || '—' }}</td>
+              <td style="font-weight:500">{{ c.name }}</td>
+              <td class="text-secondary">{{ c.teacherName || '—' }}</td>
+              <td class="text-secondary">{{ c.schedule || '—' }}</td>
+              <td><span :class="['badge', statusBadge(c.status)]">{{ statusLabel(c.status) }}</span></td>
+              <td class="text-secondary">{{ c.durationWeeks }} 周</td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
+                  <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${c.id}/classes`)">课节</button>
+                  <button v-if="canDelete()" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- 移动端卡片 -->
+      <div class="course-cards">
+        <div v-for="c in courses" :key="c.id" class="course-card">
+          <div class="course-card-header">
+            <span style="font-weight:600;font-size:15px">{{ c.name }}</span>
+            <span :class="['badge', statusBadge(c.status)]">{{ statusLabel(c.status) }}</span>
+          </div>
+          <div class="course-card-meta">
+            <span v-if="c.subjectName" class="text-secondary text-sm">{{ c.subjectName }}</span>
+            <span class="text-secondary text-sm">{{ c.teacherName || '暂无教师' }}</span>
+            <span class="text-secondary text-sm">{{ c.durationWeeks }} 周</span>
+          </div>
+          <div v-if="c.schedule" class="text-secondary text-sm" style="margin-top:4px">{{ c.schedule }}</div>
+          <div class="course-card-actions">
+            <button class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
+            <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${c.id}/classes`)">课节</button>
+            <button v-if="canDelete()" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <Teleport to="body">
       <div v-if="showForm" class="modal-backdrop" @click.self="showForm = false">
@@ -369,5 +392,31 @@ const statusBadge = (s: CourseStatus) => ({ not_started: 'badge-info', in_progre
   font-size: 13px;
   color: var(--c-primary);
   font-weight: 500;
+}
+
+/* ── 响应式：桌面表格 / 移动卡片 ──────────────────────────── */
+.course-cards { display: none; }
+
+@media (max-width: 700px) {
+  .course-table { display: none; }
+  .course-cards {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .course-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r);
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .course-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  }
+  .course-card-meta {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .course-card-actions {
+    display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+  }
 }
 </style>

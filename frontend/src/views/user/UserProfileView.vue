@@ -6,7 +6,29 @@
         <div v-if="!auth.user" class="empty"><span class="empty-icon">👤</span><p>用户信息为空...</p></div>
         <div v-else class="desc-list">
           <div class="desc-row"><span class="desc-label">用户 ID</span><span class="desc-value font-mono">{{ auth.user.userId }}</span></div>
-          <div class="desc-row"><span class="desc-label">用户名</span><span class="desc-value">{{ auth.user.username }}</span></div>
+          <div class="desc-row">
+            <span class="desc-label">用户名</span>
+            <span class="desc-value" style="display:flex;align-items:center;gap:10px">
+              <span v-if="!editingUsername">{{ auth.user.username }}</span>
+              <input
+                v-else
+                v-model="usernameInput"
+                class="input"
+                style="height:32px;padding:0 10px;max-width:220px"
+                placeholder="新用户名"
+                maxlength="50"
+                @keydown.enter="saveUsername"
+                @keydown.esc="cancelUsernameEdit"
+              />
+              <template v-if="!editingUsername">
+                <button class="btn btn-secondary btn-sm" @click="startUsernameEdit">编辑</button>
+              </template>
+              <template v-else>
+                <button class="btn btn-primary btn-sm" :class="{ loading: savingUsername }" @click="saveUsername">保存</button>
+                <button class="btn btn-secondary btn-sm" @click="cancelUsernameEdit">取消</button>
+              </template>
+            </span>
+          </div>
           <div class="desc-row">
             <span class="desc-label">别名</span>
             <span class="desc-value" style="display:flex;align-items:center;gap:10px">
@@ -48,7 +70,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEnrollmentStore } from '@/stores/enrollment'
 import { useToast } from '@/composables/useToast'
-import { updateDisplayName } from '@/api/auth'
+import { updateDisplayName, updateUsername } from '@/api/auth'
 import type { UserRole } from '@/types'
 
 const auth = useAuthStore()
@@ -58,6 +80,10 @@ const toast = useToast()
 const editingName = ref(false)
 const nameInput = ref('')
 const saving = ref(false)
+
+const editingUsername = ref(false)
+const usernameInput = ref('')
+const savingUsername = ref(false)
 
 function startEdit() {
   nameInput.value = auth.user?.displayName ?? ''
@@ -79,6 +105,31 @@ async function saveName() {
     toast.error('保存失败，请重试')
   } finally {
     saving.value = false
+  }
+}
+
+function startUsernameEdit() {
+  usernameInput.value = auth.user?.username ?? ''
+  editingUsername.value = true
+}
+
+function cancelUsernameEdit() {
+  editingUsername.value = false
+}
+
+async function saveUsername() {
+  const val = usernameInput.value.trim()
+  if (!val) { toast.warning('用户名不能为空'); return }
+  savingUsername.value = true
+  try {
+    await updateUsername(val)
+    await auth.fetchMe()
+    editingUsername.value = false
+    toast.success('用户名已更新')
+  } catch {
+    toast.error('保存失败，用户名可能已被占用')
+  } finally {
+    savingUsername.value = false
   }
 }
 
