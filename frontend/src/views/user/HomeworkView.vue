@@ -133,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { fmt, fmtDate, toDatetimeLocal, toDateLocal } from '@/utils/time'
+import { fmt } from '@/utils/time'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEnrollmentStore } from '@/stores/enrollment'

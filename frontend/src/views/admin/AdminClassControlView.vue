@@ -79,8 +79,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { adminClassApi, adminCourseApi, adminUserApi } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth'
 import type { ClassSession, AttendanceRecord, AdminUserDetail, UserRole } from '@/types'
-const route = useRoute(); const toast = useToast()
+const route = useRoute(); const toast = useToast(); const auth = useAuthStore()
 const courseId = Number(route.params.courseId); const classId = Number(route.params.classId)
 const loading = ref(false); const saving = ref(false); const savingAtt = ref(false)
 const uploading = ref(false)
@@ -95,14 +96,18 @@ const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '�
 onMounted(async () => {
   loading.value = true
   try {
-    const [cr, ar, ur] = await Promise.all([
+    const [cr, ar] = await Promise.all([
       adminClassApi.get(courseId, classId),
       adminCourseApi.attendance(courseId, classId),
-      adminUserApi.list(),
     ])
     cls.value = cr.data
     attendance.value = ar.data
-    teachers.value = ur.data.filter(u => u.role === 'staff' || u.role === 'admin')
+    if (auth.isAdmin) {
+      const ur = await adminUserApi.list()
+      teachers.value = ur.data.filter((u: AdminUserDetail) => u.role === 'staff' || u.role === 'admin')
+    } else {
+      teachers.value = auth.user ? [auth.user as unknown as AdminUserDetail] : []
+    }
     form.value = {
       week: cls.value.week,
       session: cls.value.session,

@@ -212,7 +212,7 @@ async function handleDelete(id: number) {
   await adminUserApi.delete(id); users.value = users.value.filter(u => u.id !== id); toast.success('删除成功')
 }
 const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '管理员' }[r])
-const roleClass = (r: UserRole) => ({ user: 'badge-info', staff: 'badge-warning', admin: 'badge-danger' }[r])
+// const roleClass = (r: UserRole) => ({ user: 'badge-info', staff: 'badge-warning', admin: 'badge-danger' }[r])
 </script>
 
 <style scoped>

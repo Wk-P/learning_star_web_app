@@ -98,13 +98,14 @@
 </template>
 
 <script setup lang="ts">
-import { fmt, fmtDate, toDatetimeLocal, toDateLocal, datetimeLocalToISO } from '@/utils/time'
+import { fmt, toDatetimeLocal, datetimeLocalToISO } from '@/utils/time'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { adminClassApi, adminUserApi, adminCourseApi } from '@/api/admin'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
+import { useAuthStore } from '@/stores/auth'
 import type { ClassSession, AdminUserDetail, UserRole } from '@/types'
 
 const route = useRoute()
@@ -113,6 +114,7 @@ const toast = useToast()
 const { confirm } = useConfirm()
 const { setSegments } = useBreadcrumb()
 
+const auth = useAuthStore()
 const courseId = Number(route.params.courseId)
 const loading = ref(false)
 const saving = ref(false)
@@ -131,13 +133,17 @@ const form = ref({
 onMounted(async () => {
   loading.value = true
   try {
-    const [clsRes, userRes, courseRes] = await Promise.all([
+    const [clsRes, courseRes] = await Promise.all([
       adminClassApi.list(courseId),
-      adminUserApi.list(),
       adminCourseApi.get(courseId),
     ])
     classes.value = clsRes.data
-    teachers.value = userRes.data.filter(u => u.role === 'staff' || u.role === 'admin')
+    if (auth.isAdmin) {
+      const userRes = await adminUserApi.list()
+      teachers.value = userRes.data.filter((u: AdminUserDetail) => u.role === 'staff' || u.role === 'admin')
+    } else {
+      teachers.value = auth.user ? [auth.user as unknown as AdminUserDetail] : []
+    }
     setSegments([
       { label: '课程管理', path: '/admin/courses' },
       { label: `${courseRes.data.name} — 课节` },

@@ -41,7 +41,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { fmt, fmtDate, toDatetimeLocal, toDateLocal } from '@/utils/time'
+import { fmt } from '@/utils/time'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { homeworkApi } from '@/api/homework'

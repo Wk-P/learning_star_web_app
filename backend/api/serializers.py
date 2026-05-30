@@ -122,6 +122,8 @@ class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
         delta = obj.end_time - obj.start_time
         return max(1, round(delta.days / 7))
     def get_teacher_name(self, obj):
+        if not obj.teacher:
+            return ''
         return obj.teacher.display_name or obj.teacher.username
 
 # ── CourseFile ────────────────────────────────────────────────────────────────

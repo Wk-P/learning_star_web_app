@@ -32,7 +32,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { fmt, fmtDate, toDatetimeLocal, toDateLocal, datetimeLocalToISO } from '@/utils/time'
+import { fmt, toDatetimeLocal, datetimeLocalToISO } from '@/utils/time'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'

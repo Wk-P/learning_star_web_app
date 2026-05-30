@@ -53,8 +53,8 @@
               </select>
             </div>
 
-            <!-- 主讲教师 -->
-            <div class="field">
+            <!-- 主讲教师（仅 admin 可指定，staff 自动设为自己） -->
+            <div v-if="auth.isAdmin" class="field">
               <label class="field-label">主讲教师</label>
               <select v-model="form.teacherId" class="select">
                 <option :value="null">— 暂不指定 —</option>
@@ -229,20 +229,23 @@ function parseSchedule(schedule: string) {
 onMounted(async () => {
   loading.value = true
   try {
-    const [cr, sr, ur] = await Promise.all([
-      adminCourseApi.list(),
-      adminSubjectApi.list(),
-      adminUserApi.list(),
-    ])
+    const [cr, sr] = await Promise.all([adminCourseApi.list(), adminSubjectApi.list()])
     allCourses.value = cr.data
     subjects.value = sr.data
-    teachers.value = ur.data.filter(u => u.role === 'staff')
+    if (auth.isAdmin) {
+      const ur = await adminUserApi.list()
+      teachers.value = ur.data.filter((u: AdminUserDetail) => u.role === 'staff')
+    }
   } finally { loading.value = false }
 })
 
 function openCreate() {
   editTarget.value = null
-  form.value = { subjectId: filterSubjectId.value, teacherId: null, name: '', description: '', schedule: '', startTime: '', endTime: '' }
+  form.value = {
+    subjectId: filterSubjectId.value,
+    teacherId: auth.isAdmin ? null : (auth.user?.id ?? null),
+    name: '', description: '', schedule: '', startTime: '', endTime: '',
+  }
   parseSchedule('')
   showForm.value = true
 }
