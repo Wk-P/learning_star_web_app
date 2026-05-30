@@ -113,4 +113,11 @@ export const adminHomeworkApi = {
   update: (homeworkId: number, data: Partial<Homework>) =>
     http.patch<Homework>(`/api/admin/homework/${homeworkId}/`, data),
   delete: (homeworkId: number) => http.delete(`/api/admin/homework/${homeworkId}/`),
+  submissions: (homeworkId: number) =>
+    http.get<HomeworkSubmission[]>(`/api/admin/homework/${homeworkId}/submissions/`),
+  grade: (homeworkId: number, submissionId: number, score: number) =>
+    http.patch<HomeworkSubmission>(
+      `/api/admin/homework/${homeworkId}/submissions/${submissionId}/grade/`,
+      { score },
+    ),
 }

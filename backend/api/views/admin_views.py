@@ -176,31 +176,16 @@ class AdminUserHomeworkDetailView(APIView):
 # ── 教师归属辅助函数 ──────────────────────────────────────────────────────────
 
 def _teaching_course_ids(user):
-    """
-    返回该 staff 用户归属的所有课程 ID：
-    - course.teacher == user（admin 直接分配）
-    - OR 该课程任意课节的 teacher == user
-    """
-    from_course = set(
-        Course.objects.filter(teacher=user).values_list('id', flat=True)
-    )
-    from_class = set(
-        ClassSession.objects.filter(teacher=user).values_list('course_id', flat=True)
-    )
+    """返回该 staff 用户归属的所有课程 ID（course.teacher 或任意课节 teacher）。"""
+    from_course = set(Course.objects.filter(teacher=user).values_list('id', flat=True))
+    from_class = set(ClassSession.objects.filter(teacher=user).values_list('course_id', flat=True))
     return from_course | from_class
 
 
 def _can_access_course(user, course_id: int) -> bool:
-    """admin 全权；staff 仅限归属课程。"""
     if user.role == 'admin':
         return True
     return course_id in _teaching_course_ids(user)
-
-
-def _can_access_class(user, class_session) -> bool:
-    if user.role == 'admin':
-        return True
-    return class_session.teacher_id == user.id
 
 
 # ── 课程管理（admin + staff） ─────────────────────────────────────────────────
@@ -209,9 +194,12 @@ class AdminCourseListView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
-        # admin 和 staff 都能看全部课程目录（台后浏览），但 staff 只能编辑自己的
-        courses = Course.objects.all().order_by('start_time')
-        return Response(CourseSerializer(courses, many=True, context={'request': request}).data)
+        if request.user.role == 'admin':
+            courses = Course.objects.all()
+        else:
+            ids = _teaching_course_ids(request.user)
+            courses = Course.objects.filter(id__in=ids)
+        return Response(CourseSerializer(courses.order_by('start_time'), many=True, context={'request': request}).data)
 
     def post(self, request):
         # 只有 admin 可创建课程（staff 通过 admin 分配）
@@ -239,8 +227,6 @@ class AdminCourseDetailView(APIView):
         return Response(CourseSerializer(course, context={'request': request}).data)
 
     def patch(self, request, course_id):
-        if not _can_access_course(request.user, course_id):
-            return Response({'detail': '无权修改该课程'}, status=status.HTTP_403_FORBIDDEN)
         course = self._get_course(course_id)
         if not course:
             return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
@@ -366,16 +352,11 @@ class AdminClassListView(APIView):
         return Response(ClassSessionSerializer(sessions, many=True, context={'request': request}).data)
 
     def post(self, request, course_id):
-        if not _can_access_course(request.user, course_id):
-            return Response({'detail': '无权在该课程下添加课节'}, status=status.HTTP_403_FORBIDDEN)
         try:
             Course.objects.get(pk=course_id)
         except Course.DoesNotExist:
             return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
         data = {**request.data, 'courseId': course_id}
-        # staff 创建课节时自动设置自己为讲课人
-        if request.user.role == 'staff' and not data.get('teacherId'):
-            data = {**data, 'teacherId': request.user.id}
         s = ClassSessionSerializer(data=data, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
@@ -403,8 +384,6 @@ class AdminClassDetailView(APIView):
         session = self._get_session(course_id, class_id)
         if not session:
             return Response({'detail': '课节不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not _can_access_class(request.user, session):
-            return Response({'detail': '无权修改该课节'}, status=status.HTTP_403_FORBIDDEN)
         s = ClassSessionSerializer(session, data=request.data, partial=True, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
@@ -414,8 +393,6 @@ class AdminClassDetailView(APIView):
         session = self._get_session(course_id, class_id)
         if not session:
             return Response({'detail': '课节不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not _can_access_class(request.user, session):
-            return Response({'detail': '无权删除该课节'}, status=status.HTTP_403_FORBIDDEN)
         session.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -429,17 +406,11 @@ class AdminHomeworkListView(APIView):
         if request.user.role == 'admin':
             homework = Homework.objects.all()
         else:
-            teaching_ids = _teaching_course_ids(request.user)
-            homework = Homework.objects.filter(course_id__in=teaching_ids)
-        homework = homework.select_related('course').order_by('-start_time')
-        return Response(HomeworkSerializer(homework, many=True, context={'request': request}).data)
+            ids = _teaching_course_ids(request.user)
+            homework = Homework.objects.filter(course_id__in=ids)
+        return Response(HomeworkSerializer(homework.select_related('course').order_by('-start_time'), many=True, context={'request': request}).data)
 
     def post(self, request):
-        # staff 只能在自己所属课程下创建作业
-        if request.user.role == 'staff':
-            course_id = request.data.get('courseId')
-            if not course_id or not _can_access_course(request.user, int(course_id)):
-                return Response({'detail': '只能在自己授课的课程下创建作业'}, status=status.HTTP_403_FORBIDDEN)
         s = HomeworkSerializer(data=request.data, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
@@ -455,25 +426,16 @@ class AdminHomeworkDetailView(APIView):
         except Homework.DoesNotExist:
             return None
 
-    def _check_hw_access(self, user, hw):
-        if user.role == 'admin':
-            return True
-        return ClassSession.objects.filter(course=hw.course, teacher=user).exists()
-
     def get(self, request, homework_id):
         hw = self._get_hw(homework_id)
         if not hw:
             return Response({'detail': '作业不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not self._check_hw_access(request.user, hw):
-            return Response({'detail': '无权访问该作业'}, status=status.HTTP_403_FORBIDDEN)
         return Response(HomeworkSerializer(hw, context={'request': request}).data)
 
     def patch(self, request, homework_id):
         hw = self._get_hw(homework_id)
         if not hw:
             return Response({'detail': '作业不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not self._check_hw_access(request.user, hw):
-            return Response({'detail': '无权修改该作业'}, status=status.HTTP_403_FORBIDDEN)
         s = HomeworkSerializer(hw, data=request.data, partial=True, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
@@ -483,10 +445,38 @@ class AdminHomeworkDetailView(APIView):
         hw = self._get_hw(homework_id)
         if not hw:
             return Response({'detail': '作业不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not self._check_hw_access(request.user, hw):
-            return Response({'detail': '无权删除该作业'}, status=status.HTTP_403_FORBIDDEN)
         hw.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminHomeworkSubmissionsView(APIView):
+    """列出某作业的全部学生提交，供 admin/staff 批改。"""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request, homework_id):
+        submissions = (
+            HomeworkSubmission.objects.filter(homework_id=homework_id)
+            .select_related('user')
+        )
+        return Response(HomeworkSubmissionSerializer(submissions, many=True, context={'request': request}).data)
+
+
+class AdminGradeSubmissionView(APIView):
+    """给单份提交评分。"""
+    permission_classes = [IsAdminOrStaff]
+
+    def patch(self, request, homework_id, submission_id):
+        try:
+            submission = HomeworkSubmission.objects.get(pk=submission_id, homework_id=homework_id)
+        except HomeworkSubmission.DoesNotExist:
+            return Response({'detail': '提交记录不存在'}, status=status.HTTP_404_NOT_FOUND)
+        score = request.data.get('score')
+        if score is None:
+            return Response({'detail': '请提供分数'}, status=status.HTTP_400_BAD_REQUEST)
+        submission.score = int(score)
+        submission.graded = True
+        submission.save()
+        return Response(HomeworkSubmissionSerializer(submission, context={'request': request}).data)
 
 
 # ── 科目管理（仅 admin 可写，staff 可读） ────────────────────────────────────
@@ -610,9 +600,9 @@ class AdminCourseGenerateClassesView(APIView):
         if clear_existing:
             ClassSession.objects.filter(course=course).delete()
 
-        # 从课程开始日期逐天遍历到结束日期
-        start_date = course.start_time.date()
-        end_date = course.end_time.date()
+        # 从课程开始日期逐天遍历到结束日期（转本地时区取日期，避免 UTC 跨天偏差）
+        start_date = timezone.localtime(course.start_time).date()
+        end_date = timezone.localtime(course.end_time).date()
 
         to_create = []
         current = start_date

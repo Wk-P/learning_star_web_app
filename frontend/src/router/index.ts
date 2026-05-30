@@ -50,7 +50,7 @@ const router = createRouter({
       ],
     },
 
-    // ── AdminLayout：统一后台（admin + staff 共用，按 role 精细化控制） ───────
+    // ── AdminLayout：统一后台（admin + staff 共用，role 隔离） ────────────────
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),
@@ -74,24 +74,18 @@ const router = createRouter({
         { path: 'users/:userId/homework', name: 'admin-user-homework-list', component: () => import('@/views/admin/AdminUserHomeworkListControlView.vue'), meta: { requiresAdminOnly: true } },
         { path: 'users/:userId/homework/:homeworkId', name: 'admin-user-homework', component: () => import('@/views/admin/AdminUserHomeworkControlView.vue'), meta: { requiresAdminOnly: true } },
 
-        // ── 科目管理（admin + staff） ─────────────────────────────────────────
+        // ── 科目管理 ─────────────────────────────────────────────────────────
         { path: 'subjects', name: 'admin-subjects', component: () => import('@/views/admin/AdminSubjectControlView.vue') },
 
-        // ── 课程管理（admin + staff，编辑权限由视图内控制） ──────────────────
+        // ── 课程管理（admin 看全部，staff 看自己的） ─────────────────────────
         { path: 'courses', name: 'admin-courses', component: () => import('@/views/admin/AdminCourseControlView.vue') },
         { path: 'courses/:courseId/classes', name: 'admin-course-classes', component: () => import('@/views/admin/AdminCourseClassListView.vue') },
         { path: 'courses/:courseId/classes/:classId', name: 'admin-class', component: () => import('@/views/admin/AdminClassControlView.vue') },
 
-        // ── 作业管理（admin + staff） ─────────────────────────────────────────
+        // ── 作业管理（admin 看全部，staff 看自己的） ─────────────────────────
         { path: 'homework', name: 'admin-homework-list', component: () => import('@/views/admin/AdminHomeworkListView.vue') },
         { path: 'homework/:homeworkId', name: 'admin-homework', component: () => import('@/views/admin/AdminHomeworkView.vue') },
-
-        // ── 教师专属视图（staff + admin，原 /teacher/* 迁移至此） ────────────
-        { path: 'my-courses', name: 'teacher-home', component: () => import('@/views/teacher/TeacherHomeView.vue') },
-        { path: 'teacher/courses/:courseId/classes', name: 'teacher-course-classes', component: () => import('@/views/teacher/TeacherCourseClassListView.vue') },
-        { path: 'teacher/courses/:courseId/classes/:classId', name: 'teacher-class', component: () => import('@/views/teacher/TeacherClassView.vue') },
-        { path: 'teacher/courses/:courseId/homework', name: 'teacher-homework', component: () => import('@/views/teacher/TeacherHomeworkListView.vue') },
-        { path: 'teacher/courses/:courseId/homework/:homeworkId/submissions', name: 'teacher-submissions', component: () => import('@/views/teacher/TeacherSubmissionsView.vue') },
+        { path: 'homework/:homeworkId/submissions', name: 'admin-homework-submissions', component: () => import('@/views/admin/AdminHomeworkSubmissionsView.vue') },
       ],
     },
 
@@ -115,7 +109,6 @@ router.beforeEach(async (to) => {
 
   const role = auth.user?.role
   const isAdmin = role === 'admin'
-  const isStaff = role === 'staff'
 
   // admin / staff 不进学生台前和个人中心
   if (auth.isStaff && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {

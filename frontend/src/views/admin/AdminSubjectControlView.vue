@@ -3,7 +3,7 @@
     <div class="toolbar">
       <h1 class="page-title" style="margin:0">科目管理</h1>
       <div class="toolbar-spacer" />
-      <button class="btn btn-primary" @click="openCreate">＋ 新增科目</button>
+      <button v-if="auth.isAdmin" class="btn btn-primary" @click="openCreate">＋ 新增科目</button>
     </div>
 
     <div v-if="loading" class="skeleton" style="height:200px" />
@@ -29,7 +29,7 @@
           <p style="font-size:13px;color:var(--c-text-2);margin-bottom:14px;min-height:36px">
             {{ s.description || '暂无描述' }}
           </p>
-          <div class="flex" style="gap:8px" @click.stop>
+          <div v-if="auth.isAdmin" class="flex" style="gap:8px" @click.stop>
             <button class="btn btn-secondary btn-sm" @click="openEdit(s)">编辑</button>
             <button class="btn btn-danger btn-sm" @click="handleDelete(s.id)">删除</button>
           </div>
@@ -76,7 +76,10 @@ import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { adminSubjectApi } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth'
 import type { Subject } from '@/types'
+
+const auth = useAuthStore()
 
 const toast = useToast(); const { confirm } = useConfirm()
 const loading = ref(false); const saving = ref(false); const showForm = ref(false)

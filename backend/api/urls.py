@@ -8,13 +8,6 @@ from .views.course_views import (
     HomeworkByCourseView, MyHomeworkListView, HomeworkDetailView,
     MyHomeworkSubmissionView, SubmitHomeworkView,
 )
-from .views.teacher_views import (
-    TeacherCourseListView, TeacherCourseDetailView,
-    TeacherClassListView, TeacherClassDetailView,
-    TeacherAttendanceView,
-    TeacherHomeworkListView, TeacherHomeworkDetailView,
-    TeacherHomeworkSubmissionsView, TeacherGradeSubmissionView,
-)
 from .views.admin_views import (
     AdminSubjectListView, AdminSubjectDetailView,
     AdminCourseGenerateClassesView,
@@ -27,6 +20,7 @@ from .views.admin_views import (
     AdminClassFileView, AdminClassFileDeleteView,
     AdminClassListView, AdminClassDetailView,
     AdminHomeworkListView, AdminHomeworkDetailView,
+    AdminHomeworkSubmissionsView, AdminGradeSubmissionView,
 )
 
 urlpatterns = [
@@ -54,17 +48,6 @@ urlpatterns = [
     path('homework/<int:homework_id>/', HomeworkDetailView.as_view()),
     path('homework/<int:homework_id>/my-submission/', MyHomeworkSubmissionView.as_view()),
     path('homework/<int:homework_id>/submit/', SubmitHomeworkView.as_view()),
-
-    # ── Teacher：教师专属接口 ────────────────────────────────────────────────
-    path('teacher/courses/', TeacherCourseListView.as_view()),
-    path('teacher/courses/<int:course_id>/', TeacherCourseDetailView.as_view()),
-    path('teacher/courses/<int:course_id>/classes/', TeacherClassListView.as_view()),
-    path('teacher/courses/<int:course_id>/classes/<int:class_id>/', TeacherClassDetailView.as_view()),
-    path('teacher/courses/<int:course_id>/classes/<int:class_id>/attendance/', TeacherAttendanceView.as_view()),
-    path('teacher/courses/<int:course_id>/homework/', TeacherHomeworkListView.as_view()),
-    path('teacher/courses/<int:course_id>/homework/<int:homework_id>/', TeacherHomeworkDetailView.as_view()),
-    path('teacher/courses/<int:course_id>/homework/<int:homework_id>/submissions/', TeacherHomeworkSubmissionsView.as_view()),
-    path('teacher/courses/<int:course_id>/homework/<int:homework_id>/submissions/<int:submission_id>/grade/', TeacherGradeSubmissionView.as_view()),
 
     # ── Admin：用户管理 ───────────────────────────────────────────────────────
     path('admin/users/', AdminUserListView.as_view()),
@@ -94,4 +77,6 @@ urlpatterns = [
     # ── Admin：作业管理 ───────────────────────────────────────────────────────
     path('admin/homework/', AdminHomeworkListView.as_view()),
     path('admin/homework/<int:homework_id>/', AdminHomeworkDetailView.as_view()),
+    path('admin/homework/<int:homework_id>/submissions/', AdminHomeworkSubmissionsView.as_view()),
+    path('admin/homework/<int:homework_id>/submissions/<int:submission_id>/grade/', AdminGradeSubmissionView.as_view()),
 ]

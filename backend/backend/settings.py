@@ -44,7 +44,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = 'api.User'
 
 LANGUAGE_CODE = 'zh-hans'
-TIME_ZONE = 'UTC'          # 统一存储 UTC，前端负责本地化显示
+TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
 USE_TZ = True
 

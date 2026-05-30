@@ -81,14 +81,14 @@
 
 <script setup lang="ts">
 import { fmt, toDatetimeLocal, datetimeLocalToISO } from '@/utils/time'
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { adminClassApi, adminUserApi, adminCourseApi } from '@/api/admin'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useAuthStore } from '@/stores/auth'
-import type { ClassSession, AdminUserDetail, UserRole } from '@/types'
+import type { ClassSession, AdminUserDetail, UserRole, Course } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,6 +103,14 @@ const saving = ref(false)
 const showCreate = ref(false)
 const classes = ref<ClassSession[]>([])
 const teachers = ref<AdminUserDetail[]>([])
+const course = ref<Course | null>(null)
+
+// 能管理课程：admin 全权；staff 是课程主讲人，或担任该课程下任意课节教师
+const canManageCourse = computed(() =>
+  auth.isAdmin ||
+  course.value?.teacherId === auth.user?.id ||
+  classes.value.some(c => c.teacherId === auth.user?.id)
+)
 
 const form = ref({
   week: 1,
@@ -120,6 +128,7 @@ onMounted(async () => {
       adminCourseApi.get(courseId),
     ])
     classes.value = clsRes.data
+    course.value = courseRes.data
     if (auth.isAdmin) {
       const userRes = await adminUserApi.list()
       teachers.value = userRes.data.filter((u: AdminUserDetail) => u.role === 'staff' || u.role === 'admin')

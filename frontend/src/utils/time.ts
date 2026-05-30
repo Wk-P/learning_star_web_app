@@ -54,11 +54,8 @@ export function datetimeLocalToISO(local: string): string {
 /** 显示用：本地时间，精确到分钟，例如 "2025-09-01 09:00" */
 export function fmt(iso: string): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('zh-CN', {
-    hour12: false,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  }).replace(/\//g, '-')
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 /** 显示用：仅日期，例如 "2025/09/01" → "2025-09-01" */

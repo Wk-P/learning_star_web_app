@@ -7,7 +7,7 @@
         <router-link :to="{ name: 'admin-courses' }" style="margin-left:4px;color:inherit;opacity:0.7">✕</router-link>
       </span>
       <div class="toolbar-spacer" />
-      <button class="btn btn-primary" @click="openCreate">＋ 新增课程</button>
+      <button v-if="auth.isAdmin" class="btn btn-primary" @click="openCreate">＋ 新增课程</button>
     </div>
 
     <div v-if="loading" class="skeleton" style="height:200px" />
@@ -25,9 +25,9 @@
             <td class="text-secondary">{{ c.durationWeeks }} 周</td>
             <td>
               <div class="table-actions">
-                <button v-if="canEdit(c)" class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
+                <button class="btn btn-secondary btn-sm" @click="openEdit(c)">编辑</button>
                 <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/courses/${c.id}/classes`)">课节</button>
-                <button v-if="canEdit(c)" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
+                <button v-if="canDelete()" class="btn btn-danger btn-sm" @click="handleDelete(c.id)">删除</button>
               </div>
             </td>
           </tr>
@@ -149,7 +149,7 @@ const route = useRoute()
 const toast = useToast()
 const auth = useAuthStore()
 
-const canEdit = (c: Course) => auth.isAdmin || c.teacherId === auth.user?.id
+const canDelete = () => auth.isAdmin
 const { confirm } = useConfirm()
 
 const loading = ref(false)

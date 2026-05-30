@@ -5,7 +5,6 @@
         <div class="al-left">
           <span class="al-logo">⚙ 管理后台</span>
           <nav class="al-nav al-nav-desktop">
-            <router-link v-if="!auth.isAdmin" to="/admin/my-courses" class="al-nav-link">我的课程</router-link>
             <router-link v-if="auth.isAdmin" to="/admin/users" class="al-nav-link">用户管理</router-link>
             <router-link to="/admin/subjects" class="al-nav-link">科目管理</router-link>
             <router-link to="/admin/courses" class="al-nav-link">课程管理</router-link>
@@ -24,7 +23,6 @@
       </div>
       <!-- 移动端下拉导航 -->
       <nav v-if="mobileNavOpen" class="al-nav-mobile al-show-xs" @click="mobileNavOpen = false">
-        <router-link v-if="!auth.isAdmin" to="/admin/my-courses" class="al-nav-link-m">我的课程</router-link>
         <router-link v-if="auth.isAdmin" to="/admin/users" class="al-nav-link-m">用户管理</router-link>
         <router-link to="/admin/subjects" class="al-nav-link-m">科目管理</router-link>
         <router-link to="/admin/courses" class="al-nav-link-m">课程管理</router-link>

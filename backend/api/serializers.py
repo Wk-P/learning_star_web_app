@@ -94,7 +94,7 @@ class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
     )
     subject_name = serializers.CharField(source='subject.name', read_only=True, default='')
     teacher_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role='staff'),
+        queryset=User.objects.filter(role__in=['staff', 'admin']),
         source='teacher', allow_null=True, required=False
     )
     teacher_name = serializers.SerializerMethodField()
@@ -150,7 +150,7 @@ class ClassSessionSerializer(CamelCaseMixin, serializers.ModelSerializer):
         queryset=Course.objects.all(), source='course', required=False
     )
     teacher_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role='staff'),
+        queryset=User.objects.filter(role__in=['staff', 'admin']),
         source='teacher', allow_null=True, required=False
     )
     # 只读展示字段

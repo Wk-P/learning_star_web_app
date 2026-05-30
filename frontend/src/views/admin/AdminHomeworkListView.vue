@@ -22,6 +22,7 @@
             <td>
               <div class="table-actions">
                 <button class="btn btn-secondary btn-sm" @click="router.push(`/admin/homework/${hw.id}`)">详情</button>
+                <button class="btn btn-primary btn-sm" @click="router.push(`/admin/homework/${hw.id}/submissions`)">评分</button>
                 <button class="btn btn-danger btn-sm" @click="handleDelete(hw.id)">删除</button>
               </div>
             </td>

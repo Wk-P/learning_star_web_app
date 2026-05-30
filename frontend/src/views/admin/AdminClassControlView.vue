@@ -81,7 +81,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const cls = ref<ClassSession | null>(null)
 const attendance = ref<AttendanceRecord[]>([])
 const teachers = ref<AdminUserDetail[]>([])
-const form = ref({ week: 1, session: 1, classTime: '', meetingUrl: '', teacherId: null as number | null })
+const form = ref({ classTime: '', meetingUrl: '', teacherId: null as number | null })
 
 const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '管理员' }[r])
 
@@ -101,8 +101,6 @@ onMounted(async () => {
       teachers.value = auth.user ? [auth.user as unknown as AdminUserDetail] : []
     }
     form.value = {
-      week: cls.value.week,
-      session: cls.value.session,
       classTime: toDatetimeLocal(cls.value.classTime),
       meetingUrl: cls.value.meetingUrl,
       teacherId: cls.value.teacherId ?? null,
