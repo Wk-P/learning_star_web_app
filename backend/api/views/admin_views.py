@@ -194,6 +194,7 @@ class AdminCourseListView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        # admin 看全部；staff 只看被指定为讲课人的课程（course.teacher 或任意课节 teacher）
         if request.user.role == 'admin':
             courses = Course.objects.all()
         else:
@@ -403,6 +404,7 @@ class AdminHomeworkListView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        # admin 看全部；staff 只看自己所教课程的作业
         if request.user.role == 'admin':
             homework = Homework.objects.all()
         else:
