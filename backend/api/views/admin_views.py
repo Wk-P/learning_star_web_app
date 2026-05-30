@@ -233,8 +233,6 @@ class AdminCourseDetailView(APIView):
             return None
 
     def get(self, request, course_id):
-        if not _can_access_course(request.user, course_id):
-            return Response({'detail': '无权访问该课程'}, status=status.HTTP_403_FORBIDDEN)
         course = self._get_course(course_id)
         if not course:
             return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
@@ -399,8 +397,6 @@ class AdminClassDetailView(APIView):
         session = self._get_session(course_id, class_id)
         if not session:
             return Response({'detail': '课节不存在'}, status=status.HTTP_404_NOT_FOUND)
-        if not _can_access_class(request.user, session):
-            return Response({'detail': '无权访问该课节'}, status=status.HTTP_403_FORBIDDEN)
         return Response(ClassSessionSerializer(session, context={'request': request}).data)
 
     def patch(self, request, course_id, class_id):

@@ -5,14 +5,6 @@
       <div class="card">
         <div class="card-header">{{ cls.title }} — 编辑</div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-            <div class="field"><label class="field-label">周次</label>
-              <div class="num-input"><button @click="form.week = Math.max(1, form.week - 1)">−</button><input type="number" v-model="form.week" min="1" /><button @click="form.week++">＋</button></div>
-            </div>
-            <div class="field"><label class="field-label">节次</label>
-              <div class="num-input"><button @click="form.session = Math.max(1, form.session - 1)">−</button><input type="number" v-model="form.session" min="1" /><button @click="form.session++">＋</button></div>
-            </div>
-          </div>
           <div class="field"><label class="field-label">上课时间</label><input type="datetime-local" v-model="form.classTime" /></div>
           <div class="field"><label class="field-label">会议室链接</label><input v-model="form.meetingUrl" class="input" /></div>
           <div class="field">

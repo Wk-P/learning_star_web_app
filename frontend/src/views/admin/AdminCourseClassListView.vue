@@ -51,24 +51,6 @@
             <button class="modal-close" @click="showCreate = false">✕</button>
           </div>
           <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding-top:20px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div class="field">
-                <label class="field-label">周次</label>
-                <div class="num-input">
-                  <button type="button" @click="form.week = Math.max(1, form.week - 1)">−</button>
-                  <input type="number" v-model="form.week" min="1" />
-                  <button type="button" @click="form.week++">＋</button>
-                </div>
-              </div>
-              <div class="field">
-                <label class="field-label">节次</label>
-                <div class="num-input">
-                  <button type="button" @click="form.session = Math.max(1, form.session - 1)">−</button>
-                  <input type="number" v-model="form.session" min="1" />
-                  <button type="button" @click="form.session++">＋</button>
-                </div>
-              </div>
-            </div>
             <div class="field">
               <label class="field-label">上课时间</label>
               <input type="datetime-local" v-model="form.classTime" class="input" style="height:36px;padding:0 12px" />
@@ -179,6 +161,7 @@ async function handleCreate() {
       meetingUrl: form.value.meetingUrl,
       ...(form.value.teacherId ? { teacherId: form.value.teacherId } : {}),
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await adminClassApi.create(courseId, { ...payload, classTime: datetimeLocalToISO((payload as any).classTime) })
     classes.value.push(data)
     classes.value.sort((a, b) => a.week !== b.week ? a.week - b.week : a.session - b.session)
