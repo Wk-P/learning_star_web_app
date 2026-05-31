@@ -127,6 +127,7 @@ class ClassListView(APIView):
             ClassSession.objects.filter(course_id=course_id)
             .select_related('teacher')
             .prefetch_related('files')
+            .order_by('class_time')
         )
         return Response(ClassSessionSerializer(sessions, many=True, context={'request': request}).data)
 

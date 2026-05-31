@@ -41,6 +41,9 @@
             <router-link to="/user/profile" class="ul-nav-item">
               <span class="ul-nav-icon">👤</span> 个人信息
             </router-link>
+            <router-link to="/user/schedule" class="ul-nav-item">
+              <span class="ul-nav-icon">📅</span> 课程表
+            </router-link>
 
             <!-- 我的课程（展开列表） -->
             <div class="ul-nav-group">
@@ -165,6 +168,7 @@ const breadcrumbs = computed(() => {
   const base = [{ label: '个人中心', path: '/user/profile' }]
   if (segments.value.length > 0) return [...base, ...segments.value]
   const map: Record<string, { label: string; path: string }[]> = {
+    'user-schedule':     [{ label: '课程表', path: '' }],
     'user-courses':      [{ label: '我的课程', path: '' }],
     'user-homework-list':[{ label: '我的作业', path: '' }],
     'homework':          [{ label: '我的作业', path: '/user/homework' }, { label: '作业详情', path: '' }],

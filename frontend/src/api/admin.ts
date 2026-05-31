@@ -82,7 +82,7 @@ export const adminClassApi = {
   generate: (courseId: number, clearExisting = true) =>
     http.post<{ count: number; sessions: ClassSession[] }>(
       `/api/admin/courses/${courseId}/classes/generate/`,
-      { clearExisting },
+      { clearExisting, utcOffsetMinutes: -new Date().getTimezoneOffset() },
     ),
   get: (courseId: number, classId: number) =>
     http.get<ClassSession>(`/api/admin/courses/${courseId}/classes/${classId}/`),

@@ -80,8 +80,14 @@ class ClassSession(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='classes')
     week = models.PositiveIntegerField()
     session = models.PositiveIntegerField()
+    STATUS_NORMAL    = 'normal'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES   = [(STATUS_NORMAL, '正常'), (STATUS_CANCELLED, '休讲')]
+
     class_time = models.DateTimeField()
     meeting_url = models.URLField(blank=True, max_length=500)
+    memo = models.CharField(max_length=100, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_NORMAL)
     teacher = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='taught_classes'
     )

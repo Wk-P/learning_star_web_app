@@ -50,11 +50,15 @@
         <div v-if="classes.length === 0" class="empty"><span class="empty-icon">📅</span><p>课节列表为空...</p></div>
         <div v-else class="table-wrap">
           <table class="table">
-            <thead><tr><th>课节</th><th>上课时间</th><th>操作</th></tr></thead>
+            <thead><tr><th>课节</th><th>上课时间</th><th>备注</th><th>操作</th></tr></thead>
             <tbody>
-              <tr v-for="cls in classes" :key="cls.id">
-                <td>{{ cls.title }}</td>
+              <tr v-for="cls in classes" :key="cls.id" :class="{ 'cls-cancelled': cls.status === 'cancelled' }">
+                <td>
+                  {{ cls.title }}
+                  <span v-if="cls.status === 'cancelled'" class="cls-cancelled-tag">休讲</span>
+                </td>
                 <td>{{ fmt(cls.classTime) }}</td>
+                <td class="text-secondary" style="font-size:12px">{{ cls.memo || '—' }}</td>
                 <td>
                   <button class="btn btn-link btn-sm" @click="router.push(`/courses/${courseId}/classes/${cls.id}`)">查看</button>
                 </td>
@@ -143,4 +147,10 @@ function statusBadge(s: CourseStatus | HomeworkStatus) { return { not_started: '
 .course-meta-item { display: flex; gap: 12px; }
 .course-meta-label { width: 80px; flex-shrink: 0; font-size: 13px; font-weight: 500; color: var(--c-text-2); padding-top: 1px; }
 .course-meta-value { font-size: 14px; color: var(--c-text); line-height: 1.6; }
+.cls-cancelled td { color: var(--c-text-3) !important; }
+.cls-cancelled-tag {
+  display: inline-block; margin-left: 6px;
+  padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; background: #e5e7eb; color: #9ca3af;
+}
 </style>

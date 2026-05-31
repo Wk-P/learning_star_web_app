@@ -43,6 +43,7 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/user/profile' },
         { path: 'profile', name: 'user-profile', component: () => import('@/views/user/UserProfileView.vue') },
+        { path: 'schedule', name: 'user-schedule', component: () => import('@/views/user/UserScheduleView.vue') },
         { path: 'courses', name: 'user-courses', component: () => import('@/views/user/UserCourseListView.vue') },
         { path: 'homework', name: 'user-homework-list', component: () => import('@/views/user/UserHomeworkListView.vue') },
         { path: 'homework/:homeworkId', name: 'homework', component: () => import('@/views/user/HomeworkView.vue') },

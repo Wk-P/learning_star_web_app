@@ -160,7 +160,8 @@ class ClassSessionSerializer(CamelCaseMixin, serializers.ModelSerializer):
         model = ClassSession
         fields = [
             'id', 'course_id', 'week', 'session', 'title',
-            'class_time', 'meeting_url', 'teacher_id', 'teacher_name', 'students', 'files',
+            'class_time', 'meeting_url', 'memo', 'status',
+            'teacher_id', 'teacher_name', 'students', 'files',
         ]
 
     def get_title(self, obj):

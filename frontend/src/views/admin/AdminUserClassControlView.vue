@@ -8,6 +8,7 @@
           <div class="desc-list" style="margin-bottom:20px">
             <div class="desc-row"><span class="desc-label">上课时间</span><span class="desc-value">{{ fmt(cls.classTime) }}</span></div>
             <div class="desc-row"><span class="desc-label">讲课人</span><span class="desc-value">{{ cls.teacherName || '暂无' }}</span></div>
+            <div v-if="cls.memo" class="desc-row"><span class="desc-label">备注</span><span class="desc-value">{{ cls.memo }}</span></div>
           </div>
           <h3 class="section-title">出勤记录</h3>
           <div v-if="attendance.length === 0" class="empty"><span class="empty-icon">📋</span><p>出勤记录为空...</p></div>

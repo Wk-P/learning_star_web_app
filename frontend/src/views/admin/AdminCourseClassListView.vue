@@ -25,8 +25,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="cls in classes" :key="cls.id">
-              <td style="font-weight:500">{{ cls.title }}</td>
+            <tr v-for="cls in classes" :key="cls.id" :class="{ 'row-cancelled': cls.status === 'cancelled' }">
+              <td style="font-weight:500">
+                {{ cls.title }}
+                <span v-if="cls.status === 'cancelled'" class="badge-cancelled">休讲</span>
+              </td>
               <td class="text-secondary">{{ fmt(cls.classTime) }}</td>
               <td class="text-secondary">{{ cls.teacherName || '—' }}</td>
               <td>
@@ -148,8 +151,9 @@ onMounted(async () => {
       adminClassApi.list(courseId),
       adminCourseApi.get(courseId),
     ])
-    classes.value = clsRes.data
     course.value = courseRes.data
+    // 后端已按 class_time 排序，直接使用
+    classes.value = clsRes.data
     if (auth.isAdmin) {
       const userRes = await adminUserApi.list()
       teachers.value = userRes.data.filter((u: AdminUserDetail) => u.role === 'staff' || u.role === 'admin')
@@ -192,9 +196,10 @@ async function handleCreate() {
       ...(form.value.teacherId ? { teacherId: form.value.teacherId } : {}),
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await adminClassApi.create(courseId, { ...payload, classTime: datetimeLocalToISO((payload as any).classTime) })
-    classes.value.push(data)
-    classes.value.sort((a, b) => a.week !== b.week ? a.week - b.week : a.session - b.session)
+    await adminClassApi.create(courseId, { ...payload, classTime: datetimeLocalToISO((payload as any).classTime) })
+    // 重新拉取完整列表（后端已重新编号）
+    const refreshed = await adminClassApi.list(courseId)
+    classes.value = refreshed.data
     showCreate.value = false
     toast.success('创建成功')
   } finally {
@@ -215,6 +220,14 @@ async function handleDelete(classId: number) {
 
 <style scoped>
 .cls-cards { display: none; }
+
+.row-cancelled td { color: var(--c-text-3) !important; }
+.badge-cancelled {
+  display: inline-block; margin-left: 6px;
+  padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 500;
+  background: #e5e7eb; color: #6b7280;
+}
 
 @media (max-width: 700px) {
   .cls-table { display: none; }

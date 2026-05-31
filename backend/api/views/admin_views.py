@@ -339,29 +339,66 @@ class AdminClassFileDeleteView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# ── 课节 week/session 重新编号 ────────────────────────────────────────────────
+
+def _recompute_all_sessions(course):
+    """
+    按 class_time 升序重新计算所有课节的 week 和 session，并批量写回。
+    - week: 从课程开始日期算起，每 7 天为一周
+    - session: 同一周内按 class_time 先后从 1 开始编号
+    """
+    from django.utils import timezone as dj_tz
+    sessions = list(
+        ClassSession.objects.filter(course=course).order_by('class_time')
+    )
+    if not sessions:
+        return
+
+    # 课程开始日期（用 Asia/Shanghai，与前端一致）
+    tz = dj_tz.get_current_timezone()
+    start_date = course.start_time.astimezone(tz).date()
+
+    week_counter: dict[int, int] = {}
+    to_update = []
+    for s in sessions:
+        class_date = s.class_time.astimezone(tz).date()
+        week = (class_date - start_date).days // 7 + 1
+        week_counter[week] = week_counter.get(week, 0) + 1
+        s.week = week
+        s.session = week_counter[week]
+        to_update.append(s)
+
+    ClassSession.objects.bulk_update(to_update, ['week', 'session'])
+
+
 # ── 课节管理（admin + staff） ─────────────────────────────────────────────────
 
 class AdminClassListView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, course_id):
-        # 全量可读，写操作才限制归属
         sessions = (
             ClassSession.objects.filter(course_id=course_id)
             .select_related('teacher').prefetch_related('files')
+            .order_by('class_time')
         )
         return Response(ClassSessionSerializer(sessions, many=True, context={'request': request}).data)
 
     def post(self, request, course_id):
         try:
-            Course.objects.get(pk=course_id)
+            course = Course.objects.get(pk=course_id)
         except Course.DoesNotExist:
             return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
-        data = {**request.data, 'courseId': course_id}
+        # week/session 由后端自动推算，不接受客户端传入
+        data = {**request.data, 'courseId': course_id, 'week': 1, 'session': 1}
         s = ClassSessionSerializer(data=data, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
-        return Response(s.data, status=status.HTTP_201_CREATED)
+        # 新增后重新编号所有课节
+        _recompute_all_sessions(course)
+        # 返回更新后的该课节
+        updated = ClassSession.objects.select_related('teacher').prefetch_related('files').get(pk=s.instance.pk)
+        return Response(ClassSessionSerializer(updated, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 class AdminClassDetailView(APIView):
@@ -388,13 +425,20 @@ class AdminClassDetailView(APIView):
         s = ClassSessionSerializer(session, data=request.data, partial=True, context={'request': request})
         s.is_valid(raise_exception=True)
         s.save()
-        return Response(s.data)
+        # 修改时间后重新编号
+        if 'classTime' in request.data or 'class_time' in request.data:
+            _recompute_all_sessions(session.course)
+            session.refresh_from_db()
+        return Response(ClassSessionSerializer(session, context={'request': request}).data)
 
     def delete(self, request, course_id, class_id):
         session = self._get_session(course_id, class_id)
         if not session:
             return Response({'detail': '课节不存在'}, status=status.HTTP_404_NOT_FOUND)
+        course = session.course
         session.delete()
+        # 删除后重新编号剩余课节
+        _recompute_all_sessions(course)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -602,30 +646,39 @@ class AdminCourseGenerateClassesView(APIView):
         if clear_existing:
             ClassSession.objects.filter(course=course).delete()
 
-        # 从课程开始日期逐天遍历到结束日期（转本地时区取日期，避免 UTC 跨天偏差）
-        start_date = timezone.localtime(course.start_time).date()
-        end_date = timezone.localtime(course.end_time).date()
+        # 使用客户端时区解析日期和时间，避免服务器时区与用户时区不一致导致的偏差
+        from datetime import timezone as dt_tz
+        utc_offset_min = request.data.get('utcOffsetMinutes')
+        if utc_offset_min is not None:
+            client_tz = dt_tz(timedelta(minutes=int(utc_offset_min)))
+        else:
+            client_tz = timezone.get_current_timezone()
+
+        start_date = course.start_time.astimezone(client_tz).date()
+        end_date   = course.end_time.astimezone(client_tz).date()
 
         to_create = []
         current = start_date
         while current <= end_date:
             wd = current.weekday()  # 0=Monday
             if wd in weekdays:
-                week_num = (current - start_date).days // 7 + 1
-                session_num = weekdays.index(wd) + 1
-                class_dt = timezone.make_aware(
-                    datetime(current.year, current.month, current.day, hour, minute)
+                # 用客户端时区构造课节时间，保证"11:00"就是用户所在时区的 11:00
+                class_dt = datetime(
+                    current.year, current.month, current.day, hour, minute,
+                    tzinfo=client_tz
                 )
                 to_create.append(ClassSession(
                     course=course,
-                    week=week_num,
-                    session=session_num,
+                    week=1,     # 占位，下面统一由 _recompute_all_sessions 重算
+                    session=1,
                     class_time=class_dt,
-                    teacher=course.teacher,   # 自动沿用课程的主讲教师
+                    teacher=course.teacher,
                 ))
             current += timedelta(days=1)
 
         ClassSession.objects.bulk_create(to_create)
+        # 统一按 class_time 重新计算 week / session
+        _recompute_all_sessions(course)
 
         sessions = ClassSession.objects.filter(course=course).select_related('teacher').prefetch_related('files')
         return Response({

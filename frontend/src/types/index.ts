@@ -53,6 +53,8 @@ export interface ClassSession {
   title: string          // 例：第n周第m课
   classTime: string      // ISO 8601
   meetingUrl: string
+  memo: string
+  status: 'normal' | 'cancelled'
   teacherId: number | null
   teacherName: string
   students: string[]     // username list

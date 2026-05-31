@@ -14,6 +14,7 @@
             </span>
           </div>
           <div class="desc-row"><span class="desc-label">讲课人</span><span class="desc-value">{{ cls.teacherName || '暂无' }}</span></div>
+          <div v-if="cls.memo" class="desc-row"><span class="desc-label">备注</span><span class="desc-value">{{ cls.memo }}</span></div>
         </div>
 
         <div>

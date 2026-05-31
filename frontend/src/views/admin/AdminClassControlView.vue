@@ -8,6 +8,18 @@
           <div class="field"><label class="field-label">上课时间</label><input type="datetime-local" v-model="form.classTime" /></div>
           <div class="field"><label class="field-label">会议室链接</label><input v-model="form.meetingUrl" class="input" /></div>
           <div class="field">
+            <label class="field-label">课节状态</label>
+            <select v-model="form.status" class="select">
+              <option value="normal">正常上课</option>
+              <option value="cancelled">休讲</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">备注</label>
+            <input v-model="form.memo" class="input" placeholder="100 字以内（选填）" maxlength="100" />
+            <div class="field-hint">{{ form.memo.length }}/100</div>
+          </div>
+          <div class="field">
             <label class="field-label">讲课人</label>
             <select v-model="form.teacherId" class="select">
               <option :value="null">— 暂不指定 —</option>
@@ -61,7 +73,7 @@ const uploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const cls = ref<ClassSession | null>(null)
 const teachers = ref<AdminUserDetail[]>([])
-const form = ref({ classTime: '', meetingUrl: '', teacherId: null as number | null })
+const form = ref({ classTime: '', meetingUrl: '', memo: '', status: 'normal' as 'normal' | 'cancelled', teacherId: null as number | null })
 
 const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '管理员' }[r])
 
@@ -79,6 +91,8 @@ onMounted(async () => {
     form.value = {
       classTime: toDatetimeLocal(cls.value.classTime),
       meetingUrl: cls.value.meetingUrl,
+      memo: cls.value.memo ?? '',
+      status: cls.value.status ?? 'normal',
       teacherId: cls.value.teacherId ?? null,
     }
   } finally { loading.value = false }
@@ -123,4 +137,5 @@ async function handleDeleteFile(fileId: number) {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .file-name:hover { text-decoration: underline; }
+.field-hint { font-size: 11px; color: var(--c-text-3); margin-top: 4px; text-align: right; }
 </style>
