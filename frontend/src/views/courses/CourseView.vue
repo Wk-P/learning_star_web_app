@@ -57,7 +57,7 @@
                   {{ cls.title }}
                   <span v-if="cls.status === 'cancelled'" class="cls-cancelled-tag">休讲</span>
                 </td>
-                <td>{{ fmt(cls.classTime) }}</td>
+                <td>{{ fmtClassSession(cls.classTime) }}</td>
                 <td class="text-secondary" style="font-size:12px">{{ cls.memo || '—' }}</td>
                 <td>
                   <button class="btn btn-link btn-sm" @click="router.push(`/courses/${courseId}/classes/${cls.id}`)">查看</button>
@@ -116,6 +116,19 @@ const homework = ref<Homework[]>([])
 
 const isEnrolled = computed(() => enrollment.isEnrolled(courseId))
 const visibleHomework = computed(() => isEnrolled.value ? homework.value.filter(h => h.status !== 'not_started') : homework.value.filter(h => h.status === 'in_progress'))
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+function fmtClassSession(classTime: string) {
+  const s = course.value?.schedule ?? ''
+  const m = s.match(/(\d{1,2}):(\d{2})[–\-](\d{1,2}):(\d{2})/)
+  if (!m) return fmt(classTime)
+  const durationMin = (parseInt(m[3]!) * 60 + parseInt(m[4]!)) - (parseInt(m[1]!) * 60 + parseInt(m[2]!))
+  if (durationMin <= 0) return fmt(classTime)
+  const startDate = new Date(classTime)
+  const endDate = new Date(startDate.getTime() + durationMin * 60000)
+  return `${fmt(classTime)}–${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+}
 
 onMounted(async () => {
   loading.value = true

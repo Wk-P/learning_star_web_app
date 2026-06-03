@@ -89,10 +89,51 @@ const courseData = ref<CourseWithSessions[]>([])
 // ── 工具 ──────────────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, '0')
 
+/**
+ * 从 ISO 串中提取 YYYY-MM-DD 日期部分（服务端按 +08:00 返回，日期部分始终正确），
+ * 并在浏览器本地时区构造当天午夜 0 点的时间戳。
+ *
+ * 为什么不能直接用 new Date(iso).setHours(0,0,0,0)：
+ *   "2026-06-04T00:00:00+08:00" 在 UTC-5 浏览器中会被解析为 6月3日，
+ *   .setHours(0,0,0,0) 就把课程开始日锁定到了 6月3日，
+ *   导致 6月3日出现幽灵课节（课程实际 6月4日才开始）。
+ */
+function isoToLocalMidnight(iso: string): number {
+  const m = iso.match(/^(\d{4}-\d{2}-\d{2})/)
+  // "2026-06-04T00:00:00" 不带时区后缀 → JS 解析为浏览器本地时区的 6月4日午夜
+  return m ? new Date(`${m[1]}T00:00:00`).getTime() : new Date(iso).setHours(0, 0, 0, 0)
+}
+
+/**
+ * 从 sessions 的 classTime ISO 串提取时区偏移字符串（如 "+08:00"）。
+ * 用于将 schedule 字符串里的原始时间值转换为含时区的 ISO 串，
+ * 再由 new Date() 按浏览器本地时区展示，保证占位符槽位的时间也正确转换。
+ */
+function extractIsoOffset(sessions: ClassSession[]): string {
+  const first = sessions.find(s => s.classTime)
+  if (!first) return '+08:00'  // 无 session 时回退到服务器时区
+  const m = first.classTime.match(/([+-]\d{2}:\d{2})$/)
+  return m?.[1] ?? '+00:00'
+}
+
+/**
+ * 将 schedule 里的小时/分钟（服务器时区）转换为浏览器本地时间的 HH:MM 字符串。
+ * 通过把时间拼成含时区偏移的 ISO 串，再用 Date.getHours()/getMinutes() 完成转换。
+ */
+function scheduleTimeToLocal(
+  dateRef: Date,   // 参考日期（决定年月日，用于构造 ISO 串）
+  h: number, m: number,
+  isoOffset: string,
+): string {
+  const iso = `${dateRef.getFullYear()}-${pad(dateRef.getMonth() + 1)}-${pad(dateRef.getDate())}T${pad(h)}:${pad(m)}:00${isoOffset}`
+  const d = new Date(iso)
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316']
 const courseColor = (id: number) => COLORS[id % COLORS.length]
 
-/** 解析 schedule 字符串，返回 { weekdays: number[], hour, minute } */
+/** 解析 schedule 字符串，返回 { weekdays: number[], hour, minute, endHour?, endMinute? } */
 function parseSchedule(schedule: string) {
   const FULL: Record<string, number> = {
     '周一': 0, '周二': 1, '周三': 2, '周四': 3, '周五': 4, '周六': 5, '周日': 6, '周天': 6,
@@ -101,9 +142,12 @@ function parseSchedule(schedule: string) {
     '一': 0, '二': 1, '三': 2, '四': 3, '五': 4, '六': 5, '日': 6, '天': 6,
   }
 
-  const timeMatch = schedule.match(/(\d{1,2}):(\d{2})/)
+  const timeRangeMatch = schedule.match(/(\d{1,2}):(\d{2})[–\-](\d{1,2}):(\d{2})/)
+  const timeMatch = timeRangeMatch ?? schedule.match(/(\d{1,2}):(\d{2})/)
   const hour = timeMatch ? parseInt(timeMatch[1]!) : 9
   const minute = timeMatch ? parseInt(timeMatch[2]!) : 0
+  const endHour = timeRangeMatch ? parseInt(timeRangeMatch[3]!) : undefined
+  const endMinute = timeRangeMatch ? parseInt(timeRangeMatch[4]!) : undefined
 
   const dayPart = timeMatch ? schedule.slice(0, schedule.indexOf(timeMatch[0])) : schedule
   const weekdays = new Set<number>()
@@ -121,7 +165,7 @@ function parseSchedule(schedule: string) {
     if (remaining.includes(ch)) weekdays.add(wd)
   }
 
-  return { weekdays: [...weekdays].sort((a, b) => a - b), hour, minute }
+  return { weekdays: [...weekdays].sort((a, b) => a - b), hour, minute, endHour, endMinute }
 }
 
 /** 获取当周周一（offset=0 当周，-1 上周，+1 下周） */
@@ -171,14 +215,16 @@ const weekDays = computed(() => {
     for (const { course, sessions } of courseData.value) {
       if (!course.schedule) continue
 
-      const { weekdays, hour, minute } = parseSchedule(course.schedule)
+      const { weekdays, hour, minute, endHour, endMinute } = parseSchedule(course.schedule)
 
       // 这天在课程的课表里吗？
       if (!weekdays.includes(i)) continue
 
       // 这天在课程有效期内吗？
-      const courseStart = new Date(course.startTime).setHours(0, 0, 0, 0)
-      const courseEnd = new Date(course.endTime).setHours(23, 59, 59, 999)
+      // 用 isoToLocalMidnight 而非 new Date(iso).setHours(0,0,0,0)，
+      // 避免跨时区时 +08:00 的日期被浏览器偏移到前一天。
+      const courseStart = isoToLocalMidnight(course.startTime)
+      const courseEnd = isoToLocalMidnight(course.endTime) + 86400000 - 1  // 当天最后一毫秒
       if (dateTs < courseStart || dateTs > courseEnd) continue
 
       // 找匹配的真实课节（同一天同课程）
@@ -187,15 +233,44 @@ const weekDays = computed(() => {
         return t >= dateTs && t < dateEnd
       })
 
-      const timeStr = `${pad(hour)}:${pad(minute)}`
+      let startStr: string
+      let endStr: string
+      if (matched) {
+        const startDate = new Date(matched.classTime)
+        startStr = `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`
+        if (endHour !== undefined) {
+          // 用 schedule 中的时长偏移 classTime，保证结束时间也按浏览器时区转换
+          const durationMin = (endHour * 60 + (endMinute ?? 0)) - (hour * 60 + minute)
+          const endDate = new Date(startDate.getTime() + durationMin * 60000)
+          endStr = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+        } else {
+          endStr = ''
+        }
+      } else {
+        // 占位符：无实际课节。用 sessions 中任意一条的时区偏移把 schedule 里的时间转换为本地时区。
+        const isoOffset = extractIsoOffset(sessions)
+        startStr = scheduleTimeToLocal(date, hour, minute, isoOffset)
+        endStr = endHour !== undefined
+          ? scheduleTimeToLocal(date, endHour, endMinute!, isoOffset)
+          : ''
+      }
+      const timeStr = endStr ? `${startStr}–${endStr}` : startStr
+
+      // sortKey 统一用本地小时分钟，确保跨来源的槽位排序一致
+      const sortKeyDate = matched
+        ? new Date(matched.classTime)
+        : (() => {
+            const isoOffset = extractIsoOffset(sessions)
+            const iso = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:${pad(minute)}:00${isoOffset}`
+            return new Date(iso)
+          })()
+
       slots.push({
         courseId: course.id,
         courseName: course.name,
         teacherName: matched?.teacherName ?? course.teacherName ?? '',
-        timeStr: matched ? `${pad(new Date(matched.classTime).getHours())}:${pad(new Date(matched.classTime).getMinutes())}` : timeStr,
-        sortKey: matched
-          ? new Date(matched.classTime).getHours() * 60 + new Date(matched.classTime).getMinutes()
-          : hour * 60 + minute,
+        timeStr,
+        sortKey: sortKeyDate.getHours() * 60 + sortKeyDate.getMinutes(),
         classId: matched?.id ?? null,
         cancelled: matched?.status === 'cancelled',
       })

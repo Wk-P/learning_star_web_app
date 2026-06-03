@@ -25,19 +25,22 @@ export function toDateLocal(iso: string): string {
 /**
  * "YYYY-MM-DD" 日期字符串补全为当天 00:00:00 的 UTC ISO。
  * 前端 <input type="date"> 的 value 用此函数转换后提交给后端。
+ *
+ * 固定使用服务器时区 +08:00，避免不同浏览器时区导致日期偏移一天。
+ * 例如：UTC+9 浏览器若用本地时间，"2026-06-04T00:00:00" 会变成 "2026-06-03T15:00Z"，
+ * 服务端返回 "2026-06-03T23:00+08:00"，课程有效期错误地提前了一天。
  */
 export function dateToISOStart(date: string): string {
   if (!date) return ''
-  // new Date(`${date}T00:00:00`) 解析为本地时间，toISOString() 转 UTC
-  return new Date(`${date}T00:00:00`).toISOString()
+  return new Date(`${date}T00:00:00+08:00`).toISOString()
 }
 
 /**
- * "YYYY-MM-DD" 日期字符串补全为当天 23:59:59 的 UTC ISO。
+ * "YYYY-MM-DD" 日期字符串补全为当天 23:59:59 的 UTC ISO（固定 +08:00）。
  */
 export function dateToISOEnd(date: string): string {
   if (!date) return ''
-  return new Date(`${date}T23:59:59`).toISOString()
+  return new Date(`${date}T23:59:59+08:00`).toISOString()
 }
 
 /**
