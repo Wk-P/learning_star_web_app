@@ -69,10 +69,6 @@
             </button>
           </div>
         </div>
-        <div class="field">
-          <label>邮箱 <span class="hint-inline">（可选）</span></label>
-          <input v-model="regEmail" type="email" autocomplete="email" placeholder="your@email.com" />
-        </div>
         <p v-if="error" class="error-msg">{{ error }}</p>
         <p v-if="success" class="success-msg">{{ success }}</p>
         <button type="submit" :disabled="loading" class="btn-primary">
@@ -104,7 +100,6 @@ const showPwd  = ref(false)
 const regUsername   = ref('')
 const regPassword   = ref('')
 const regConfirm    = ref('')
-const regEmail      = ref('')
 const showRegPwd    = ref(false)
 const showRegConfirm = ref(false)
 
@@ -150,7 +145,7 @@ async function handleRegister() {
 
   loading.value = true
   try {
-    await api.register(regUsername.value, regPassword.value, regEmail.value || undefined)
+    await api.register(regUsername.value, regPassword.value)
     success.value = '注册成功，正在登录…'
     const res = await api.login(regUsername.value, regPassword.value)
     auth.setTokens(res.access, res.refresh)
@@ -282,7 +277,7 @@ input {
   border-radius: var(--r-md);
   padding: 0.62rem 0.9rem;
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 1rem;
   outline: none;
   transition: border-color var(--t), background var(--t);
   width: 100%;

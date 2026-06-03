@@ -5,9 +5,14 @@
     <section class="card profile-card">
       <div class="avatar">{{ initial }}</div>
       <div class="profile-info">
-        <span class="profile-name">{{ auth.username || '用户' }}</span>
-        <span class="profile-role">普通用户</span>
+        <span class="profile-name">{{ username }}</span>
+        <div class="profile-meta">
+          <span class="profile-role" :class="auth.isAdmin ? 'role-admin' : 'role-user'">
+            {{ auth.isAdmin ? '管理员账户' : '普通用户' }}
+          </span>
+        </div>
       </div>
+      <button class="logout-btn" @click="logout">退出登录</button>
     </section>
 
     <!-- permissions -->
@@ -79,11 +84,19 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import { api } from '@/api'
 
 const auth = useAuthStore()
+const router = useRouter()
 
-const initial = computed(() => (auth.username || '?').charAt(0).toUpperCase())
+function logout() {
+  auth.clearTokens()
+  router.push('/login')
+}
+
+const username = ref(auth.username)
+const initial = computed(() => (username.value || '?').charAt(0).toUpperCase())
 
 const permTabs = [
   { key: 'video' as const, label: '视频', icon: '▶' },
@@ -96,7 +109,11 @@ const loadingPerms = ref(true)
 
 onMounted(async () => {
   try {
-    const data = await api.getMyPermissions()
+    const [me, data] = await Promise.all([
+      api.getMe(),
+      api.getMyPermissions(),
+    ])
+    username.value = me.username
     perms.video = data.video
     perms.audio = data.audio
     perms.pdf   = data.pdf
@@ -190,10 +207,21 @@ async function handleChangePassword() {
   color: var(--text);
 }
 
-.profile-role {
-  font-size: 0.78rem;
-  color: var(--text-subtle);
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.profile-role {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.role-user  { background: var(--primary-dim);              color: var(--primary); }
+.role-admin { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
 
 /* ── section title ── */
 .section-title {
@@ -286,7 +314,7 @@ async function handleChangePassword() {
   border-radius: var(--r-md);
   padding: 0.55rem 0.85rem;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 1rem;
   outline: none;
   transition: border-color var(--t);
 }
@@ -315,4 +343,23 @@ async function handleChangePassword() {
 .btn-save:hover:not(:disabled) { opacity: 0.85; }
 
 .hint { font-size: 0.875rem; color: var(--text-muted); }
+
+.logout-btn {
+  margin-left: auto;
+  padding: 0.45rem 1rem;
+  border-radius: var(--r-xl);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: transparent;
+  color: #f87171;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
+}
 </style>

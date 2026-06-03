@@ -34,6 +34,11 @@ export const useAuthStore = defineStore('auth', () => {
     return (parseJwtPayload(accessToken.value)['username'] as string) || ''
   })
 
+  const userId = computed(() => {
+    if (!accessToken.value) return null
+    return (parseJwtPayload(accessToken.value)['user_id'] as number) ?? null
+  })
+
   // sync cookie on startup so ProtectedMediaView can read it immediately
   if (accessToken.value) {
     setCookie('access_token', accessToken.value)
@@ -55,5 +60,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearCookie('access_token')
   }
 
-  return { accessToken, refreshToken, isLoggedIn, isAdmin, username, setTokens, clearTokens }
+  return { accessToken, refreshToken, isLoggedIn, isAdmin, username, userId, setTokens, clearTokens }
 })

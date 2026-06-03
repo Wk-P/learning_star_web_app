@@ -24,10 +24,10 @@ export const api = {
     })
   },
 
-  register(username: string, password: string, email?: string) {
+  register(username: string, password: string) {
     return request<UserItem>('/user/register/', {
       method: 'POST',
-      body: JSON.stringify({ username, password, email }),
+      body: JSON.stringify({ username, password }),
     })
   },
 
@@ -81,6 +81,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     })
+  },
+
+  getMe() {
+    return request<{ username: string; is_staff: boolean }>('/user/me/')
   },
 
   getMyPermissions() {

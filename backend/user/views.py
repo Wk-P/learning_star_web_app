@@ -51,7 +51,6 @@ class UserRegisterView(APIView):
     def post(self, request: Request):
         username = request.data.get('username', '').strip()
         password = request.data.get('password', '').strip()
-        email    = request.data.get('email', '').strip()
 
         if not username or not password:
             return Response({'detail': '用户名和密码不能为空'}, status=status.HTTP_400_BAD_REQUEST)
@@ -62,8 +61,19 @@ class UserRegisterView(APIView):
         if User.objects.filter(username=username).exists():
             return Response({'detail': '用户名已存在'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(username=username, password=password, email=email)
+        user = User.objects.create_user(username=username, password=password)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request):
+        user = request.user
+        return Response({
+            'username': user.username,
+            'is_staff': user.is_staff,
+        })
 
 
 class MePermissionsView(APIView):
