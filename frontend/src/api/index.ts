@@ -2,16 +2,45 @@ import { useAuthStore } from '@/stores/auth'
 
 const BASE = '/api'
 
+async function refreshAccessToken(): Promise<boolean> {
+  const auth = useAuthStore()
+  if (!auth.refreshToken) return false
+  try {
+    const res = await fetch(`${BASE}/auth/token/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: auth.refreshToken }),
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    auth.setTokens(data.access, auth.refreshToken)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const auth = useAuthStore()
-  const headers: Record<string, string> = {
+  const makeHeaders = () => ({
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
+    ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+  })
+
+  let res = await fetch(`${BASE}${path}`, { ...options, headers: makeHeaders() })
+
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      res = await fetch(`${BASE}${path}`, { ...options, headers: makeHeaders() })
+    } else {
+      auth.clearTokens()
+      window.location.href = '/login'
+      throw res
+    }
   }
-  if (auth.accessToken) {
-    headers['Authorization'] = `Bearer ${auth.accessToken}`
-  }
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+
   if (!res.ok) throw res
   return res.json()
 }
