@@ -106,7 +106,7 @@ class ClassSession(models.Model):
 class CourseFile(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='files')
     class_session = models.ForeignKey(
-        ClassSession, on_delete=models.SET_NULL, null=True, blank=True, related_name='files'
+        ClassSession, on_delete=models.CASCADE, null=True, blank=True, related_name='files'
     )
     name = models.CharField(max_length=200)
     file = models.FileField(upload_to='course_files/')

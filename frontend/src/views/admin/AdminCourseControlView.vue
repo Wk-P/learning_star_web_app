@@ -312,8 +312,9 @@ async function handleSave() {
       savedCourse = data
     }
 
-    // 日程有效时自动生成课节（有日程 + 有起止日期）
-    if (schedulePreview.value && payload.startTime && payload.endTime) {
+    // 日程有效时，仅在该课程尚无课节时才自动生成
+    // 已有课节时不自动重置，避免清除已上传的讲义文件
+    if (schedulePreview.value && payload.startTime && payload.endTime && !editTarget.value) {
       try {
         const { data: genRes } = await adminClassApi.generate(savedCourse.id)
         toast.success(`课程已保存，已自动生成 ${genRes.count} 个课节`)
