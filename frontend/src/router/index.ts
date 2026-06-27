@@ -26,6 +26,7 @@ const router = createRouter({
         { path: '', redirect: '/home' },
         { path: 'home', name: 'home', component: () => import('@/views/home/HomeView.vue') },
         { path: 'roadmap', name: 'roadmap', component: () => import('@/views/home/RoadmapView.vue') },
+        { path: 'mindmap', name: 'mindmap', component: () => import('@/views/home/MindmapView.vue') },
       ],
     },
 
