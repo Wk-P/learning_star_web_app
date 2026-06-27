@@ -9,6 +9,7 @@ from ..models import Subject
 from ..serializers import SubjectSerializer
 
 BILIBILI_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'bilibili')
+ROADMAP_FILE = os.path.join(BILIBILI_DIR, 'template.html')
 
 
 def _subject_filepath(subject: Subject) -> str:
@@ -53,3 +54,15 @@ class SubjectVideosView(APIView):
         except Subject.DoesNotExist:
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
         return Response(_read_videos(_subject_filepath(subject)))
+
+
+class RoadmapView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not os.path.exists(ROADMAP_FILE):
+            return Response({'detail': '路线图暂未生成'}, status=status.HTTP_404_NOT_FOUND)
+        with open(ROADMAP_FILE, 'r', encoding='utf-8') as f:
+            content = f.read()
+        stat = os.stat(ROADMAP_FILE)
+        return Response({'content': content, 'size': stat.st_size, 'updatedAt': stat.st_mtime})

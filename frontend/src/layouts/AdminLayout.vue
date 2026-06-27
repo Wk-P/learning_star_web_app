@@ -7,6 +7,7 @@
           <nav class="al-nav al-nav-desktop">
             <router-link to="/admin/users" class="al-nav-link">用户管理</router-link>
             <router-link to="/admin/subjects" class="al-nav-link">科目管理</router-link>
+            <router-link to="/admin/roadmap" class="al-nav-link">路线图管理</router-link>
           </nav>
         </div>
         <div class="al-right">
@@ -32,6 +33,7 @@
           </div>
           <router-link to="/admin/users" class="al-nav-link-m">用户管理</router-link>
           <router-link to="/admin/subjects" class="al-nav-link-m">科目管理</router-link>
+          <router-link to="/admin/roadmap" class="al-nav-link-m">路线图管理</router-link>
           <div style="flex:1" />
           <button class="al-nav-link-m" style="text-align:left;width:100%;cursor:pointer;color:#94a3b8"
             @click="showPwModal = true; mobileNavOpen = false">修改密码</button>
@@ -143,6 +145,7 @@ const LABELS: Record<string, string> = {
   'admin-users': '用户管理',
   'admin-subjects': '科目管理',
   'admin-subject-videos': '视频管理',
+  'admin-roadmap': '路线图管理',
 }
 
 const breadcrumbs = computed(() => {

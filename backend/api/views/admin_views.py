@@ -4,13 +4,14 @@ import string
 
 from django.contrib.auth import get_user_model
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models import Subject
 from ..permissions import IsAdmin
 from ..serializers import SubjectSerializer, AdminUserSerializer, AdminUserCreateSerializer
-from .course_views import _subject_filepath, _read_videos
+from .course_views import _subject_filepath, _read_videos, ROADMAP_FILE
 
 User = get_user_model()
 
@@ -189,6 +190,32 @@ class AdminSubjectVideosView(APIView):
         filepath = _subject_filepath(subject)
         _write_videos(filepath, videos)
         return Response(_read_videos(filepath))
+
+
+class AdminRoadmapView(APIView):
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser]
+
+    def get(self, request):
+        if not os.path.exists(ROADMAP_FILE):
+            return Response({'exists': False})
+        stat = os.stat(ROADMAP_FILE)
+        return Response({'exists': True, 'size': stat.st_size, 'updatedAt': stat.st_mtime})
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'detail': '请上传文件'}, status=status.HTTP_400_BAD_REQUEST)
+        if not file.name.lower().endswith('.html'):
+            return Response({'detail': '只支持 .html 文件'}, status=status.HTTP_400_BAD_REQUEST)
+        if file.size > 5 * 1024 * 1024:
+            return Response({'detail': '文件不能超过 5MB'}, status=status.HTTP_400_BAD_REQUEST)
+        content = file.read().decode('utf-8')
+        os.makedirs(os.path.dirname(ROADMAP_FILE), exist_ok=True)
+        with open(ROADMAP_FILE, 'w', encoding='utf-8') as f:
+            f.write(content)
+        stat = os.stat(ROADMAP_FILE)
+        return Response({'exists': True, 'size': stat.st_size, 'updatedAt': stat.st_mtime})
 
 
 class AdminSubjectVideoDetailView(APIView):

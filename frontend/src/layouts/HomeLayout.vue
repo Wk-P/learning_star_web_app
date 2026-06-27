@@ -9,6 +9,7 @@
         </router-link>
         <nav class="hl-nav">
           <router-link to="/home" class="hl-nav-link">首页</router-link>
+          <router-link to="/roadmap" class="hl-nav-link">学习路线图</router-link>
           <router-link v-if="auth.isAdmin" to="/admin/home" class="hl-nav-admin">
             管理后台
           </router-link>

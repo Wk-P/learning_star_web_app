@@ -25,6 +25,7 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/home' },
         { path: 'home', name: 'home', component: () => import('@/views/home/HomeView.vue') },
+        { path: 'roadmap', name: 'roadmap', component: () => import('@/views/home/RoadmapView.vue') },
       ],
     },
 
@@ -54,6 +55,7 @@ const router = createRouter({
           name: 'admin-subject-videos',
           component: () => import('@/views/admin/AdminSubjectVideosView.vue'),
         },
+        { path: 'roadmap', name: 'admin-roadmap', component: () => import('@/views/admin/AdminRoadmapView.vue') },
       ],
     },
 
