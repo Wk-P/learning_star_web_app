@@ -79,16 +79,11 @@
           </div>
         </div>
 
-        <!-- 修改密码（始终可见） -->
-        <div class="hub-pw-section">
-          <div class="hub-field-label" style="margin-bottom:6px">修改密码</div>
-          <input v-model="pwForm.old" type="password" class="hub-input" placeholder="旧密码" style="margin-bottom:6px" />
-          <input v-model="pwForm.new" type="password" class="hub-input" placeholder="新密码（至少 6 位）" style="margin-bottom:8px" />
-          <button class="hub-btn-action" :class="{ loading: pwLoading }" @click="submitPw">保存密码</button>
+        <!-- 操作按钮 -->
+        <div class="hub-user-actions">
+          <button class="hub-btn-action" @click="showPwModal = true">修改密码</button>
+          <button class="hub-btn-logout" @click="handleLogout">退出登录</button>
         </div>
-
-        <!-- 退出 -->
-        <button class="hub-btn-logout" @click="handleLogout">退出登录</button>
       </div>
     </aside>
 
@@ -131,6 +126,32 @@
     </main>
 
   </div>
+
+  <!-- 修改密码弹窗 -->
+  <Teleport to="body">
+    <div v-if="showPwModal" class="modal-backdrop" @click.self="closePwModal">
+      <div class="modal">
+        <div class="modal-header">
+          <span>修改密码</span>
+          <button class="modal-close" @click="closePwModal">✕</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding-top:20px">
+          <div class="field">
+            <label class="field-label">旧密码</label>
+            <input v-model="pwForm.old" type="password" class="input" placeholder="请输入旧密码" />
+          </div>
+          <div class="field">
+            <label class="field-label">新密码</label>
+            <input v-model="pwForm.new" type="password" class="input" placeholder="至少 6 位" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closePwModal">取消</button>
+          <button class="btn btn-primary" :class="{ loading: pwLoading }" @click="submitPw">确认</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -250,8 +271,14 @@ async function saveName() {
 }
 
 // ── 修改密码 ──────────────────────────────────────────────────
+const showPwModal = ref(false)
 const pwForm = ref({ old: '', new: '' })
 const pwLoading = ref(false)
+
+function closePwModal() {
+  showPwModal.value = false
+  pwForm.value = { old: '', new: '' }
+}
 
 async function submitPw() {
   if (!pwForm.value.old || !pwForm.value.new) { toast.warning('请填写完整'); return }
@@ -260,7 +287,7 @@ async function submitPw() {
   try {
     await authApi.changePassword(pwForm.value.old, pwForm.value.new)
     toast.success('密码修改成功')
-    pwForm.value = { old: '', new: '' }
+    closePwModal()
   } catch {
     toast.error('旧密码错误或修改失败')
   } finally {
@@ -443,11 +470,8 @@ function handleLogout() {
 .hub-btn-text.primary { color: var(--c-primary); }
 .hub-btn-text.primary:hover { background: var(--c-primary-light); }
 
-/* ── 密码区 ───────────────────────────────────────────────── */
-.hub-pw-section {
-  margin-top: 10px;
-  margin-bottom: 8px;
-}
+.hub-user-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+
 .hub-btn-action {
   width: 100%;
   padding: 7px 0;
