@@ -24,18 +24,8 @@
 import { ref, onMounted } from 'vue'
 import { roadmapApi } from '@/api/course'
 
-// ── 关键词列表，长词在前防止被短词提前截断 ─────────────────────────────────
+// ── 专业术语关键词，长词在前防止被短词提前截断 ──────────────────────────────
 const KEYWORDS = [
-  '计算机科学速成课',
-  '给所有人的AI入门课',
-  '带你学C带你飞',
-  '阿不高中数学',
-  '新概念英语第一册',
-  '英式音标',
-  '国际音标',
-  '新概念英语',
-  '刘羽Leo',
-  '吴恩达',
   '机器学习',
   '深度学习',
   '人工智能',
@@ -50,6 +40,7 @@ const KEYWORDS = [
   '数学建模',
   '程序设计',
   '数字素养',
+  '国际音标',
   '二进制',
   '导数',
   '函数',
@@ -87,7 +78,7 @@ function injectBaiduLinks(html: string): string {
 
     const replaced = original.replace(KW_RE, (kw) => {
       const url = `https://www.baidu.com/s?wd=${encodeURIComponent(kw)}`
-      return `<a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,.25);text-decoration-style:dotted;cursor:pointer">${kw}</a>`
+      return `<a href="${url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;text-decoration-color:#2563eb;font-weight:600;cursor:pointer">${kw}</a>`
     })
 
     const span = doc.createElement('span')
