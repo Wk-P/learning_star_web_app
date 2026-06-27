@@ -22,6 +22,7 @@ def _random_password(length: int = 12) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
+
 def _write_videos(filepath: str, videos: list[dict]) -> None:
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w', encoding='utf-8') as f:
@@ -157,14 +158,20 @@ class AdminSubjectVideosView(APIView):
         return Response(_read_videos(_subject_filepath(subject)))
 
     def post(self, request, subject_id):
-        """追加一条视频。body: {title, url}"""
+        """追加一条视频。body: {line}，格式与 txt 文件一致：「标题 https://...」"""
         subject = self._get_subject(subject_id)
         if not subject:
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
-        title = request.data.get('title', '').strip()
-        url = request.data.get('url', '').strip()
+        line = request.data.get('line', '').strip()
+        if not line:
+            return Response({'detail': '请提供 line'}, status=status.HTTP_400_BAD_REQUEST)
+        idx = line.find(' http')
+        if idx == -1:
+            return Response({'detail': '格式错误，找不到链接（应包含 http）'}, status=status.HTTP_400_BAD_REQUEST)
+        title = line[:idx].strip()
+        url = line[idx:].strip()
         if not title or not url:
-            return Response({'detail': '请提供 title 和 url'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': '格式错误，标题或链接为空'}, status=status.HTTP_400_BAD_REQUEST)
         filepath = _subject_filepath(subject)
         videos = _read_videos(filepath)
         videos.append({'title': title, 'url': url})

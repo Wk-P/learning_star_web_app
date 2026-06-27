@@ -10,7 +10,7 @@ export const adminSubjectApi = {
   delete: (id: number) => http.delete(`/api/admin/subjects/${id}/`),
   listVideos: (subjectId: number) =>
     http.get<BilibiliVideo[]>(`/api/admin/subjects/${subjectId}/videos/`),
-  addVideo: (subjectId: number, data: { title: string; url: string }) =>
+  addVideo: (subjectId: number, data: { line: string }) =>
     http.post<BilibiliVideo>(`/api/admin/subjects/${subjectId}/videos/`, data),
   replaceVideos: (subjectId: number, videos: { title: string; url: string }[]) =>
     http.put<BilibiliVideo[]>(`/api/admin/subjects/${subjectId}/videos/`, videos),
