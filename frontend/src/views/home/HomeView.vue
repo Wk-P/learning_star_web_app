@@ -124,7 +124,7 @@ onMounted(async () => {
   try {
     const { data } = await subjectApi.list()
     subjects.value = data
-    if (data.length > 0) selectSubject(data[0])
+    if (data.length > 0) selectSubject(data[0]!)
   } finally {
     loadingSubjects.value = false
   }
