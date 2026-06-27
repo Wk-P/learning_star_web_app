@@ -35,31 +35,17 @@
           </div>
         </div>
 
-        <!-- 用户名 -->
+        <!-- 用户名（只读） -->
         <div class="hub-field">
           <label class="hub-field-label">用户名</label>
           <div class="hub-field-row">
-            <input
-              v-if="editingUsername"
-              v-model="usernameInput"
-              class="hub-input"
-              placeholder="新用户名"
-              maxlength="50"
-              @keydown.enter="saveUsername"
-              @keydown.esc="editingUsername = false"
-            />
-            <span v-else class="hub-field-value">{{ auth.user?.username }}</span>
-            <button v-if="!editingUsername" class="hub-btn-text" @click="startUsernameEdit">编辑</button>
-            <template v-else>
-              <button class="hub-btn-text primary" :class="{ loading: savingUsername }" @click="saveUsername">保存</button>
-              <button class="hub-btn-text" @click="editingUsername = false">取消</button>
-            </template>
+            <span class="hub-field-value">{{ auth.user?.username }}</span>
           </div>
         </div>
 
-        <!-- 别名 -->
+        <!-- 昵称 -->
         <div class="hub-field">
-          <label class="hub-field-label">别名</label>
+          <label class="hub-field-label">昵称</label>
           <div class="hub-field-row">
             <input
               v-if="editingName"
@@ -158,7 +144,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { subjectApi } from '@/api/course'
-import { authApi, updateDisplayName, updateUsername } from '@/api/auth'
+import { authApi, updateDisplayName } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import type { Subject, BilibiliVideo } from '@/types'
@@ -220,33 +206,7 @@ onMounted(async () => {
   }
 })
 
-// ── 用户名编辑 ────────────────────────────────────────────────
-const editingUsername = ref(false)
-const usernameInput = ref('')
-const savingUsername = ref(false)
-
-function startUsernameEdit() {
-  usernameInput.value = auth.user?.username ?? ''
-  editingUsername.value = true
-}
-
-async function saveUsername() {
-  const val = usernameInput.value.trim()
-  if (!val) { toast.warning('用户名不能为空'); return }
-  savingUsername.value = true
-  try {
-    await updateUsername(val)
-    await auth.fetchMe()
-    editingUsername.value = false
-    toast.success('用户名已更新')
-  } catch {
-    toast.error('保存失败，用户名可能已被占用')
-  } finally {
-    savingUsername.value = false
-  }
-}
-
-// ── 别名编辑 ──────────────────────────────────────────────────
+// ── 昵称编辑 ──────────────────────────────────────────────────
 const editingName = ref(false)
 const nameInput = ref('')
 const savingName = ref(false)
