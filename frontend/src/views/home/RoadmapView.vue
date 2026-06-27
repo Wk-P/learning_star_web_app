@@ -26,6 +26,7 @@ import { roadmapApi } from '@/api/course'
 
 // ── 专业术语关键词，长词在前防止被短词提前截断 ──────────────────────────────
 const KEYWORDS = [
+  // 中文专业词
   '机器学习',
   '深度学习',
   '人工智能',
@@ -45,10 +46,21 @@ const KEYWORDS = [
   '导数',
   '函数',
   '音标',
+  // 英文专业词/缩写
+  'IEEE',
+  'ACM',
+  'CPU',
+  'ALU',
+  'AI',
 ].sort((a, b) => b.length - a.length)
 
+const EN_KW = new Set(['IEEE', 'ACM', 'CPU', 'ALU', 'AI'])
+
 const KW_RE = new RegExp(
-  `(${KEYWORDS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+  KEYWORDS.map(k => {
+    const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return EN_KW.has(k) ? `\\b${escaped}\\b` : escaped
+  }).join('|'),
   'g',
 )
 
