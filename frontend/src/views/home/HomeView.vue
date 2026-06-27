@@ -1,63 +1,87 @@
 <template>
-  <div>
-    <h1 class="page-title">我的学习</h1>
+  <div style="display:flex;flex-direction:column;gap:28px">
 
-    <div v-if="loading" class="grid grid-auto">
-      <div v-for="i in 4" :key="i" class="card" style="height:100px">
-        <div class="card-body">
-          <div class="skeleton skeleton-text" />
-          <div class="skeleton skeleton-text" />
+    <!-- 用户信息卡 -->
+    <div class="home-profile card">
+      <div class="home-profile-avatar">{{ auth.user?.username?.[0]?.toUpperCase() }}</div>
+      <div class="home-profile-info">
+        <div class="home-profile-name">{{ auth.user?.displayName || auth.user?.username }}</div>
+        <div class="home-profile-meta">
+          <span class="font-mono text-sm text-muted">#{{ auth.user?.userId }}</span>
+          <span class="badge badge-info">学生</span>
         </div>
       </div>
+      <router-link to="/user/profile" class="btn btn-secondary btn-sm home-profile-edit">编辑信息</router-link>
     </div>
 
-    <template v-else>
-      <section v-for="group in courseGroups" :key="group.label" style="margin-bottom:32px">
-        <h2 class="section-title">{{ group.label }}</h2>
-        <div v-if="group.courses.length === 0" class="empty">
-          <span class="empty-icon">📭</span>
-          <p>{{ group.label }}为空...</p>
-        </div>
-        <div v-else class="grid grid-auto">
-          <div
-            v-for="course in group.courses" :key="course.courseId"
-            class="card card-hover"
-            @click="router.push(`/courses/${course.courseId}`)"
-          >
-            <div class="card-body">
-              <div style="font-size:15px;font-weight:600;margin-bottom:10px">{{ course.courseName }}</div>
-              <span :class="['badge', statusBadge(course.courseStatus)]">
-                <span class="badge-dot" />{{ statusLabel(course.courseStatus) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
+    <!-- 科目列表 -->
+    <section>
+      <h2 class="section-title">全部科目</h2>
+      <div v-if="loading" class="skeleton" style="height:120px" />
+      <div v-else-if="subjects.length === 0" class="empty">
+        <span class="empty-icon">📭</span><p>暂无科目</p>
+      </div>
+      <div v-else class="grid grid-auto">
+        <router-link
+          v-for="s in subjects" :key="s.id"
+          :to="`/courses/subject/${s.id}`"
+          class="subject-card card card-hover"
+          :style="{ '--subject-color': s.color }"
+        >
+          <div class="subject-icon">{{ s.icon }}</div>
+          <div class="subject-name">{{ s.name }}</div>
+          <div class="subject-desc text-secondary text-sm">{{ s.description || '暂无描述' }}</div>
+          <div class="subject-count text-sm">{{ s.courseCount }} 门课程</div>
+        </router-link>
+      </div>
+    </section>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useEnrollmentStore } from '@/stores/enrollment'
-import type { CourseStatus } from '@/types'
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { subjectApi } from '@/api/course'
+import type { Subject } from '@/types'
 
-const router = useRouter()
-const enrollment = useEnrollmentStore()
+const auth = useAuthStore()
+const subjects = ref<Subject[]>([])
 const loading = ref(false)
 
 onMounted(async () => {
-  if (!enrollment.loaded) { loading.value = true; await enrollment.fetchEnrollments().finally(() => loading.value = false) }
+  loading.value = true
+  try {
+    const { data } = await subjectApi.list()
+    subjects.value = data
+  } finally {
+    loading.value = false
+  }
 })
-
-const all = computed(() => [...enrollment.enrollments.values()])
-const courseGroups = computed(() => [
-  { label: '进行中的课程', courses: all.value.filter(r => r.courseStatus === 'in_progress') },
-  { label: '未开始的课程', courses: all.value.filter(r => r.courseStatus === 'not_started') },
-  { label: '已完成的课程', courses: all.value.filter(r => r.courseStatus === 'ended') },
-])
-
-function statusLabel(s: CourseStatus) { return { not_started: '未开始', in_progress: '进行中', ended: '已结束' }[s] }
-function statusBadge(s: CourseStatus) { return { not_started: 'badge-info', in_progress: 'badge-success', ended: 'badge-warning' }[s] }
 </script>
+
+<style scoped>
+.home-profile {
+  display: flex; align-items: center; gap: 16px; padding: 20px 24px;
+}
+.home-profile-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--c-primary); color: #fff;
+  font-size: 18px; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.home-profile-info { flex: 1; min-width: 0; }
+.home-profile-name { font-size: 17px; font-weight: 700; color: var(--c-text); margin-bottom: 6px; }
+.home-profile-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.home-profile-edit { flex-shrink: 0; }
+
+.subject-card {
+  display: flex; flex-direction: column; gap: 8px; padding: 20px;
+  border-top: 3px solid var(--subject-color, var(--c-primary));
+  text-decoration: none; color: inherit;
+}
+.subject-icon { font-size: 28px; }
+.subject-name { font-size: 16px; font-weight: 700; color: var(--c-text); }
+.subject-desc { line-height: 1.4; }
+.subject-count { color: var(--subject-color, var(--c-primary)); font-weight: 600; margin-top: 4px; }
+</style>

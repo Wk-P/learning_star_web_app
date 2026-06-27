@@ -5,14 +5,13 @@
         <div class="al-left">
           <span class="al-logo">⚙ 管理后台</span>
           <nav class="al-nav al-nav-desktop">
-            <router-link v-if="auth.isAdmin" to="/admin/users" class="al-nav-link">用户管理</router-link>
+            <router-link to="/admin/users" class="al-nav-link">用户管理</router-link>
             <router-link to="/admin/subjects" class="al-nav-link">科目管理</router-link>
             <router-link to="/admin/courses" class="al-nav-link">课程管理</router-link>
-            <router-link to="/admin/homework" class="al-nav-link">作业管理</router-link>
           </nav>
         </div>
         <div class="al-right">
-          <span class="al-role-badge al-hide-xs">{{ auth.isAdmin ? 'Admin' : 'Teacher' }}</span>
+          <span class="al-role-badge al-hide-xs">Admin</span>
           <span class="al-username al-hide-xs">{{ auth.user?.username }}</span>
           <button class="al-pw-btn al-hide-xs" @click="showPwModal = true">修改密码</button>
           <button class="al-logout" @click="handleLogout">退出</button>
@@ -29,13 +28,12 @@
       <div v-if="mobileNavOpen" class="al-drawer-backdrop" @click="mobileNavOpen = false">
         <nav class="al-drawer" @click.stop>
           <div class="al-drawer-user">
-            <span class="al-role-badge" style="font-size:12px">{{ auth.isAdmin ? 'Admin' : 'Teacher' }}</span>
+            <span class="al-role-badge" style="font-size:12px">Admin</span>
             <span style="font-size:14px;color:#f8fafc;font-weight:600">{{ auth.user?.username }}</span>
           </div>
-          <router-link v-if="auth.isAdmin" to="/admin/users" class="al-nav-link-m">用户管理</router-link>
+          <router-link to="/admin/users" class="al-nav-link-m">用户管理</router-link>
           <router-link to="/admin/subjects" class="al-nav-link-m">科目管理</router-link>
           <router-link to="/admin/courses" class="al-nav-link-m">课程管理</router-link>
-          <router-link to="/admin/homework" class="al-nav-link-m">作业管理</router-link>
           <div style="flex:1" />
           <button class="al-nav-link-m" style="text-align:left;width:100%;cursor:pointer;color:#94a3b8"
             @click="showPwModal = true; mobileNavOpen = false">修改密码</button>
@@ -74,7 +72,7 @@
 
     <main class="al-main">
       <nav v-if="breadcrumbs.length > 0" class="breadcrumb">
-        <router-link :to="auth.isAdmin ? '/admin/home' : '/admin/courses'">{{ auth.isAdmin ? '管理首页' : '课程管理' }}</router-link>
+        <router-link to="/admin/home">管理首页</router-link>
         <template v-for="(c, i) in breadcrumbs" :key="c.label">
           <span class="breadcrumb-sep">/</span>
           <router-link v-if="c.path" :to="c.path">{{ c.label }}</router-link>
@@ -90,13 +88,11 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useEnrollmentStore } from '@/stores/enrollment'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useToast } from '@/composables/useToast'
 import { authApi, updateUsername } from '@/api/auth'
 
 const auth = useAuthStore()
-const enrollment = useEnrollmentStore()
 const route = useRoute()
 const router = useRouter()
 const { segments, clearSegments } = useBreadcrumb()
@@ -111,7 +107,7 @@ const unForm = ref({ username: '' })
 watch(() => route.name, () => { clearSegments(); mobileNavOpen.value = false })
 
 function handleLogout() {
-  auth.logout(); enrollment.reset(); router.push('/login')
+  auth.logout(); router.push('/login')
 }
 
 async function submitUsername() {
@@ -146,12 +142,10 @@ async function submitPw() {
 }
 
 const LABELS: Record<string, string> = {
+  'admin-users': '用户管理',
   'admin-subjects': '科目管理',
-  'admin-users': '用户管理', 'admin-user-courses': '用户课程',
-  'admin-user-course': '课程详情', 'admin-user-class': '课节详情',
-  'admin-user-homework-list': '用户作业', 'admin-user-homework': '作业详情',
-  'admin-courses': '课程管理', 'admin-course-classes': '课节列表', 'admin-class': '课节编辑',
-  'admin-homework-list': '作业管理', 'admin-homework': '作业详情',
+  'admin-subject-videos': '视频管理',
+  'admin-courses': '课程管理',
 }
 
 const breadcrumbs = computed(() => {

@@ -3,12 +3,10 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Subject, Course, ClassSession, CourseFile, Homework, Enrollment, HomeworkSubmission, AttendanceRecord
+from .models import Subject, Course
 
 User = get_user_model()
 
-
-# ── camelCase 互转工具 ────────────────────────────────────────────────────────
 
 def _snake_to_camel(name: str) -> str:
     parts = name.split('_')
@@ -21,8 +19,6 @@ def _camel_to_snake(name: str) -> str:
 
 
 class CamelCaseMixin:
-    """自动将序列化输出的 snake_case key 转为 camelCase，反序列化时将 camelCase key 转为 snake_case。"""
-
     def to_representation(self, instance):
         data = super().to_representation(instance)
         return {_snake_to_camel(k): v for k, v in data.items()}
@@ -32,8 +28,6 @@ class CamelCaseMixin:
         return super().to_internal_value(converted)
 
 
-# ── JWT ────────────────────────────────────────────────────────────────────────
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -41,8 +35,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['role'] = user.role
         return token
 
-
-# ── User ──────────────────────────────────────────────────────────────────────
 
 class UserSerializer(CamelCaseMixin, serializers.ModelSerializer):
     class Meta:
@@ -73,8 +65,6 @@ class AdminUserCreateSerializer(CamelCaseMixin, serializers.ModelSerializer):
         return user
 
 
-# ── Subject ───────────────────────────────────────────────────────────────────
-
 class SubjectSerializer(CamelCaseMixin, serializers.ModelSerializer):
     course_count = serializers.SerializerMethodField()
 
@@ -86,157 +76,12 @@ class SubjectSerializer(CamelCaseMixin, serializers.ModelSerializer):
         return obj.courses.count()
 
 
-# ── Course ────────────────────────────────────────────────────────────────────
-
 class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
     subject_id = serializers.PrimaryKeyRelatedField(
         queryset=Subject.objects.all(), source='subject', allow_null=True, required=False
     )
     subject_name = serializers.CharField(source='subject.name', read_only=True, default='')
-    teacher_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role__in=['staff', 'admin']),
-        source='teacher', allow_null=True, required=False
-    )
-    teacher_name = serializers.SerializerMethodField()
-
-    def get_teacher_name(self, obj):
-        if not obj.teacher:
-            return ''
-        return obj.teacher.display_name or obj.teacher.username
-    status = serializers.SerializerMethodField()
-    duration_weeks = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = [
-            'id', 'subject_id', 'subject_name',
-            'teacher_id', 'teacher_name',
-            'name', 'description', 'schedule',
-            'status', 'start_time', 'end_time', 'duration_weeks',
-        ]
-
-    def get_status(self, obj):
-        return obj.status
-
-    def get_duration_weeks(self, obj):
-        delta = obj.end_time - obj.start_time
-        return max(1, round(delta.days / 7))
-    def get_teacher_name(self, obj):
-        if not obj.teacher:
-            return ''
-        return obj.teacher.display_name or obj.teacher.username
-
-# ── CourseFile ────────────────────────────────────────────────────────────────
-
-class CourseFileSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = CourseFile
-        fields = ['id', 'name', 'url']
-
-    def get_url(self, obj):
-        return obj.file.url if obj.file else ''
-
-
-# ── ClassSession ──────────────────────────────────────────────────────────────
-
-class ClassSessionSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    # 显式声明可写 FK 字段
-    course_id = serializers.PrimaryKeyRelatedField(
-        queryset=Course.objects.all(), source='course', required=False
-    )
-    teacher_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role__in=['staff', 'admin']),
-        source='teacher', allow_null=True, required=False
-    )
-    # 只读展示字段
-    title = serializers.SerializerMethodField()
-    teacher_name = serializers.SerializerMethodField()
-    students = serializers.SerializerMethodField()
-    files = CourseFileSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = ClassSession
-        fields = [
-            'id', 'course_id', 'week', 'session', 'title',
-            'class_time', 'meeting_url', 'memo', 'status',
-            'teacher_id', 'teacher_name', 'students', 'files',
-        ]
-
-    def get_title(self, obj):
-        return obj.title
-
-    def get_teacher_name(self, obj):
-        if not obj.teacher:
-            return ''
-        return obj.teacher.display_name or obj.teacher.username
-
-    def get_students(self, obj):
-        return [
-            enrollment.user.display_name or enrollment.user.username
-            for enrollment in Enrollment.objects.filter(course=obj.course).select_related('user')
-        ]
-
-
-# ── Homework ──────────────────────────────────────────────────────────────────
-
-class HomeworkSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    # 显式声明可写 FK 字段
-    course_id = serializers.PrimaryKeyRelatedField(
-        queryset=Course.objects.all(), source='course'
-    )
-    status = serializers.SerializerMethodField()
-    course_name = serializers.CharField(source='course.name', read_only=True)
-
-    class Meta:
-        model = Homework
-        fields = ['id', 'course_id', 'course_name', 'name', 'description', 'start_time', 'end_time', 'max_score', 'status']
-
-    def get_status(self, obj):
-        return obj.status
-
-
-# ── Enrollment ────────────────────────────────────────────────────────────────
-
-class EnrollmentRecordSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    course_name = serializers.CharField(source='course.name', read_only=True)
-    course_status = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Enrollment
-        fields = ['course_id', 'course_name', 'enrolled_at', 'course_status']
-
-    def get_course_status(self, obj):
-        return obj.course.status
-
-
-# ── HomeworkSubmission ────────────────────────────────────────────────────────
-
-class HomeworkSubmissionSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    file_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = HomeworkSubmission
-        fields = ['id', 'homework_id', 'user_id', 'submitted_at', 'file_url', 'file_name', 'score', 'graded']
-
-    def get_file_url(self, obj):
-        return obj.file.url if obj.file else ''
-
-
-# ── AttendanceRecord ──────────────────────────────────────────────────────────
-
-class AttendanceRecordSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    class Meta:
-        model = AttendanceRecord
-        fields = ['class_session_id', 'user_id', 'present', 'note']
-
-
-# ── CourseScore ───────────────────────────────────────────────────────────────
-
-class CourseScoreSerializer(serializers.Serializer):
-    courseId = serializers.IntegerField()
-    courseName = serializers.CharField()
-    courseStatus = serializers.CharField()
-    finalScore = serializers.FloatField(allow_null=True)
-    graded = serializers.BooleanField()
+        fields = ['id', 'subject_id', 'subject_name', 'name', 'description']

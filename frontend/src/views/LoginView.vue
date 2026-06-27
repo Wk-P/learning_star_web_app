@@ -4,7 +4,7 @@
       <div class="login-left">
         <div class="brand-icon">📚</div>
         <h1 class="brand-name">课程管理系统</h1>
-        <p class="brand-desc">在线学习 · 作业管理 · 成绩追踪</p>
+        <p class="brand-desc">在线学习 · 视频课程 · 科目分类</p>
       </div>
       <div class="login-right">
         <h2 class="form-title">欢迎登录</h2>
@@ -30,11 +30,9 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useEnrollmentStore } from '@/stores/enrollment'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
-const enrollment = useEnrollmentStore()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
@@ -49,10 +47,7 @@ async function handleLogin() {
   loading.value = true
   try {
     await auth.login(form.value)
-    enrollment.fetchEnrollments()
-    const defaultRedirect = auth.isAdmin ? '/admin/home'
-      : auth.user?.role === 'staff' ? '/admin/courses'
-      : '/home'
+    const defaultRedirect = auth.isAdmin ? '/admin/home' : '/home'
     const redirect = (route.query.redirect as string) || defaultRedirect
     router.push(redirect)
   } catch {

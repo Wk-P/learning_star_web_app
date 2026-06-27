@@ -59,7 +59,6 @@
               <span :class="['badge', roleClass(auth.user.role)]">{{ roleLabel(auth.user.role) }}</span>
             </span>
           </div>
-          <div class="desc-row"><span class="desc-label">已申请课程</span><span class="desc-value">{{ enrollment.enrollments.size }} 门</span></div>
         </div>
       </div>
     </div>
@@ -68,13 +67,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useEnrollmentStore } from '@/stores/enrollment'
 import { useToast } from '@/composables/useToast'
 import { updateDisplayName, updateUsername } from '@/api/auth'
 import type { UserRole } from '@/types'
 
 const auth = useAuthStore()
-const enrollment = useEnrollmentStore()
 const toast = useToast()
 
 const editingName = ref(false)
@@ -133,6 +130,6 @@ async function saveUsername() {
   }
 }
 
-const roleLabel = (r: UserRole) => ({ user: '学生', staff: '教师', admin: '管理员' }[r])
-const roleClass = (r: UserRole) => ({ user: 'badge-info', staff: 'badge-warning', admin: 'badge-danger' }[r])
+const roleLabel = (r: UserRole) => ({ user: '学生', admin: '管理员' }[r] ?? r)
+const roleClass = (r: UserRole) => ({ user: 'badge-info', admin: 'badge-danger' }[r] ?? 'badge-info')
 </script>

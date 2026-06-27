@@ -37,20 +37,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useEnrollmentStore } from '@/stores/enrollment'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 
 const auth = useAuthStore()
-const enrollment = useEnrollmentStore()
 const route = useRoute()
 const { segments, clearSegments } = useBreadcrumb()
-
-onMounted(() => {
-  if (auth.isLoggedIn && !enrollment.loaded) enrollment.fetchEnrollments()
-})
 
 // 路由变化时清空动态面包屑，等新视图重新设置
 watch(() => route.name, clearSegments)
@@ -65,7 +59,6 @@ const breadcrumbs = computed(() => {
   if (name === 'course-list') return [...base, { label: '课程目录', path: '' }]
   if (name === 'subject-courses') return [...base, { label: '课程目录', path: '/courses' }, { label: '科目课程', path: '' }]
   if (name === 'course') return [...base, { label: '课程目录', path: '/courses' }, { label: '课程详情', path: '' }]
-  if (name === 'class') return [...base, { label: '课程目录', path: '/courses' }, { label: '课程详情', path: `/courses/${route.params.courseId}` }, { label: '课节详情', path: '' }]
   return base
 })
 </script>
