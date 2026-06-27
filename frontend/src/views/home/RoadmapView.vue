@@ -12,10 +12,9 @@
 
     <iframe
       v-else
-      ref="iframeEl"
       class="rm-frame"
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      :srcdoc="content"
+      :srcdoc="processed"
       title="学习路线图"
     />
   </div>
@@ -25,17 +24,90 @@
 import { ref, onMounted } from 'vue'
 import { roadmapApi } from '@/api/course'
 
-const content = ref('')
+// ── 关键词列表，长词在前防止被短词提前截断 ─────────────────────────────────
+const KEYWORDS = [
+  '计算机科学速成课',
+  '给所有人的AI入门课',
+  '带你学C带你飞',
+  '阿不高中数学',
+  '新概念英语第一册',
+  '英式音标',
+  '国际音标',
+  '新概念英语',
+  '刘羽Leo',
+  '吴恩达',
+  '机器学习',
+  '深度学习',
+  '人工智能',
+  '数据结构',
+  '操作系统',
+  '计算思维',
+  '布尔逻辑',
+  '三角函数',
+  '解析几何',
+  '立体几何',
+  '概率统计',
+  '数学建模',
+  '程序设计',
+  '数字素养',
+  '二进制',
+  '导数',
+  '函数',
+  '音标',
+].sort((a, b) => b.length - a.length)
+
+const KW_RE = new RegExp(
+  `(${KEYWORDS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+  'g',
+)
+
+function injectBaiduLinks(html: string): string {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const p = (node as Text).parentElement
+      if (!p || p.closest('a') || p.tagName === 'SCRIPT' || p.tagName === 'STYLE') {
+        return NodeFilter.FILTER_SKIP
+      }
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  const textNodes: Text[] = []
+  let n: Node | null
+  while ((n = walker.nextNode())) textNodes.push(n as Text)
+
+  for (const textNode of textNodes) {
+    const original = textNode.textContent ?? ''
+    KW_RE.lastIndex = 0
+    if (!KW_RE.test(original)) continue
+    KW_RE.lastIndex = 0
+
+    const replaced = original.replace(KW_RE, (kw) => {
+      const url = `https://www.baidu.com/s?wd=${encodeURIComponent(kw)}`
+      return `<a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,.25);text-decoration-style:dotted;cursor:pointer">${kw}</a>`
+    })
+
+    const span = doc.createElement('span')
+    span.innerHTML = replaced
+    textNode.parentNode?.replaceChild(span, textNode)
+  }
+
+  return '<!doctype html>' + doc.documentElement.outerHTML
+}
+
+const processed = ref('')
 const loading = ref(false)
 const error = ref('')
-const iframeEl = ref<HTMLIFrameElement | null>(null)
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
     const { data } = await roadmapApi.get()
-    content.value = data.content
+    processed.value = injectBaiduLinks(data.content)
   } catch {
     error.value = '路线图暂未生成，请联系管理员上传。'
   } finally {
