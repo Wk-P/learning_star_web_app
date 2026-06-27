@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models import Subject, Course
-from ..serializers import SubjectSerializer, CourseSerializer
+from ..models import Subject
+from ..serializers import SubjectSerializer
 
 BILIBILI_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'bilibili')
 
@@ -44,16 +44,7 @@ class SubjectListView(APIView):
         return Response(SubjectSerializer(subjects, many=True).data)
 
 
-class SubjectCoursesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, subject_id):
-        courses = Course.objects.filter(subject_id=subject_id).select_related('subject')
-        return Response(CourseSerializer(courses, many=True).data)
-
-
 class SubjectVideosView(APIView):
-    """学生浏览某科目的 B 站视频列表（只读）。"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, subject_id):
@@ -61,24 +52,4 @@ class SubjectVideosView(APIView):
             subject = Subject.objects.get(pk=subject_id)
         except Subject.DoesNotExist:
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
-        filepath = _subject_filepath(subject)
-        return Response(_read_videos(filepath))
-
-
-class CourseListView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        courses = Course.objects.all().select_related('subject')
-        return Response(CourseSerializer(courses, many=True).data)
-
-
-class CourseDetailView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, course_id):
-        try:
-            course = Course.objects.select_related('subject').get(pk=course_id)
-        except Course.DoesNotExist:
-            return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(CourseSerializer(course).data)
+        return Response(_read_videos(_subject_filepath(subject)))

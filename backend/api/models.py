@@ -42,13 +42,3 @@ class Subject(models.Model):
         return self.name
 
 
-class Course(models.Model):
-    subject = models.ForeignKey(
-        Subject, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='courses',
-    )
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.name

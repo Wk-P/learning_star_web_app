@@ -6,7 +6,6 @@
           <span>📚</span><span>课程系统</span>
         </router-link>
         <nav class="ul-top-nav">
-          <router-link to="/courses" class="ul-top-link ul-hide-xs">课程列表</router-link>
           <router-link to="/home" class="ul-top-link ul-hide-xs">返回主页</router-link>
           <router-link v-if="auth.isAdmin" to="/admin/home" class="ul-top-admin ul-hide-xs">管理后台</router-link>
           <span class="ul-username ul-hide-xs">{{ auth.user?.username }}</span>

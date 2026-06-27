@@ -20,7 +20,6 @@
               <span style="font-size:28px">{{ s.icon }}</span>
               <div>
                 <div style="font-size:15px;font-weight:600;color:var(--c-text)">{{ s.name }}</div>
-                <div class="text-sm text-muted">{{ s.courseCount }} 门课程</div>
               </div>
             </div>
             <span class="color-dot" :style="{ background: s.color }" />

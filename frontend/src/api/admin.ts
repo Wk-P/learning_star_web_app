@@ -1,5 +1,5 @@
 import http from './http'
-import type { Subject, AdminUserDetail, Course, BilibiliVideo } from '@/types'
+import type { Subject, AdminUserDetail, BilibiliVideo } from '@/types'
 
 // ── 科目管理 ──────────────────────────────────────────────────────────────────
 export const adminSubjectApi = {
@@ -8,7 +8,6 @@ export const adminSubjectApi = {
   create: (data: Partial<Subject>) => http.post<Subject>('/api/admin/subjects/', data),
   update: (id: number, data: Partial<Subject>) => http.patch<Subject>(`/api/admin/subjects/${id}/`, data),
   delete: (id: number) => http.delete(`/api/admin/subjects/${id}/`),
-  // 视频管理
   listVideos: (subjectId: number) =>
     http.get<BilibiliVideo[]>(`/api/admin/subjects/${subjectId}/videos/`),
   addVideo: (subjectId: number, data: { title: string; url: string }) =>
@@ -32,14 +31,4 @@ export const adminUserApi = {
   delete: (userId: number) => http.delete(`/api/admin/users/${userId}/`),
   resetPassword: (userId: number) =>
     http.post<{ newPassword: string }>(`/api/admin/users/${userId}/reset-password/`),
-}
-
-// ── 课程管理 ──────────────────────────────────────────────────────────────────
-export const adminCourseApi = {
-  list: () => http.get<Course[]>('/api/admin/courses/'),
-  get: (courseId: number) => http.get<Course>(`/api/admin/courses/${courseId}/`),
-  create: (data: Partial<Course>) => http.post<Course>('/api/admin/courses/', data),
-  update: (courseId: number, data: Partial<Course>) =>
-    http.patch<Course>(`/api/admin/courses/${courseId}/`, data),
-  delete: (courseId: number) => http.delete(`/api/admin/courses/${courseId}/`),
 }

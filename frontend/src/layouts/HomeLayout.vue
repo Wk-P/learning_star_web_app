@@ -8,7 +8,7 @@
           <span>课程系统</span>
         </router-link>
         <nav class="hl-nav">
-          <router-link to="/courses" class="hl-nav-link">课程列表</router-link>
+          <router-link to="/home" class="hl-nav-link">首页</router-link>
           <router-link v-if="auth.isAdmin" to="/admin/home" class="hl-nav-admin">
             管理后台
           </router-link>
@@ -56,9 +56,7 @@ const breadcrumbs = computed(() => {
   // 路由级静态后备（数据还未加载时显示）
   const name = route.name as string
   if (!name || name === 'home') return base
-  if (name === 'course-list') return [...base, { label: '课程目录', path: '' }]
-  if (name === 'subject-courses') return [...base, { label: '课程目录', path: '/courses' }, { label: '科目课程', path: '' }]
-  if (name === 'course') return [...base, { label: '课程目录', path: '/courses' }, { label: '课程详情', path: '' }]
+  if (name === 'subject-videos') return [...base, { label: '科目视频', path: '' }]
   return base
 })
 </script>

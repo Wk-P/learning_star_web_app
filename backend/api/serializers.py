@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Subject, Course
+from .models import Subject
 
 User = get_user_model()
 
@@ -66,22 +66,8 @@ class AdminUserCreateSerializer(CamelCaseMixin, serializers.ModelSerializer):
 
 
 class SubjectSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    course_count = serializers.SerializerMethodField()
-
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'description', 'icon', 'color', 'course_count']
-
-    def get_course_count(self, obj):
-        return obj.courses.count()
+        fields = ['id', 'name', 'description', 'icon', 'color']
 
 
-class CourseSerializer(CamelCaseMixin, serializers.ModelSerializer):
-    subject_id = serializers.PrimaryKeyRelatedField(
-        queryset=Subject.objects.all(), source='subject', allow_null=True, required=False
-    )
-    subject_name = serializers.CharField(source='subject.name', read_only=True, default='')
-
-    class Meta:
-        model = Course
-        fields = ['id', 'subject_id', 'subject_name', 'name', 'description']

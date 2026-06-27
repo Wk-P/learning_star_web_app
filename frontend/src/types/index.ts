@@ -15,15 +15,6 @@ export interface Subject {
   description: string
   icon: string
   color: string
-  courseCount: number
-}
-
-export interface Course {
-  id: number
-  subjectId: number | null
-  subjectName: string
-  name: string
-  description: string
 }
 
 export interface BilibiliVideo {

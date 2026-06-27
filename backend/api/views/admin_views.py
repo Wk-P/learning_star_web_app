@@ -7,14 +7,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models import Subject, Course
+from ..models import Subject
 from ..permissions import IsAdmin
-from ..serializers import (
-    SubjectSerializer,
-    AdminUserSerializer,
-    AdminUserCreateSerializer,
-    CourseSerializer,
-)
+from ..serializers import SubjectSerializer, AdminUserSerializer, AdminUserCreateSerializer
 from .course_views import _subject_filepath, _read_videos
 
 User = get_user_model()
@@ -229,49 +224,3 @@ class AdminSubjectVideoDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ── 课程管理（仅 admin） ──────────────────────────────────────────────────────
-
-class AdminCourseListView(APIView):
-    permission_classes = [IsAdmin]
-
-    def get(self, request):
-        courses = Course.objects.all().select_related('subject').order_by('id')
-        return Response(CourseSerializer(courses, many=True).data)
-
-    def post(self, request):
-        s = CourseSerializer(data=request.data)
-        s.is_valid(raise_exception=True)
-        s.save()
-        return Response(s.data, status=status.HTTP_201_CREATED)
-
-
-class AdminCourseDetailView(APIView):
-    permission_classes = [IsAdmin]
-
-    def _get_course(self, course_id):
-        try:
-            return Course.objects.select_related('subject').get(pk=course_id)
-        except Course.DoesNotExist:
-            return None
-
-    def get(self, request, course_id):
-        course = self._get_course(course_id)
-        if not course:
-            return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(CourseSerializer(course).data)
-
-    def patch(self, request, course_id):
-        course = self._get_course(course_id)
-        if not course:
-            return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
-        s = CourseSerializer(course, data=request.data, partial=True)
-        s.is_valid(raise_exception=True)
-        s.save()
-        return Response(s.data)
-
-    def delete(self, request, course_id):
-        course = self._get_course(course_id)
-        if not course:
-            return Response({'detail': '课程不存在'}, status=status.HTTP_404_NOT_FOUND)
-        course.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)

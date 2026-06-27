@@ -25,9 +25,11 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/home' },
         { path: 'home', name: 'home', component: () => import('@/views/home/HomeView.vue') },
-        { path: 'courses', name: 'course-list', component: () => import('@/views/courses/CourseListView.vue') },
-        { path: 'courses/subject/:subjectId', name: 'subject-courses', component: () => import('@/views/courses/SubjectCoursesView.vue') },
-        { path: 'courses/:courseId', name: 'course', component: () => import('@/views/courses/CourseView.vue') },
+        {
+          path: 'subjects/:subjectId',
+          name: 'subject-videos',
+          component: () => import('@/views/courses/SubjectVideosView.vue'),
+        },
       ],
     },
 
@@ -52,8 +54,11 @@ const router = createRouter({
         { path: 'home', name: 'admin-home', component: () => import('@/views/admin/AdminHomeView.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/views/admin/AdminUserControlView.vue') },
         { path: 'subjects', name: 'admin-subjects', component: () => import('@/views/admin/AdminSubjectControlView.vue') },
-        { path: 'subjects/:subjectId/videos', name: 'admin-subject-videos', component: () => import('@/views/admin/AdminSubjectVideosView.vue') },
-        { path: 'courses', name: 'admin-courses', component: () => import('@/views/admin/AdminCourseControlView.vue') },
+        {
+          path: 'subjects/:subjectId/videos',
+          name: 'admin-subject-videos',
+          component: () => import('@/views/admin/AdminSubjectVideosView.vue'),
+        },
       ],
     },
 
@@ -73,12 +78,10 @@ router.beforeEach(async (to) => {
     catch { return { name: 'login' } }
   }
 
-  // admin 不进学生区
-  if (auth.isAdmin && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/courses'))) {
+  if (auth.isAdmin && (to.path.startsWith('/home') || to.path.startsWith('/user') || to.path.startsWith('/subjects'))) {
     return { name: 'admin-home' }
   }
 
-  // 学生不进后台
   if (to.meta.requiresAdmin && !auth.isAdmin) return { name: 'error' }
 
   return true

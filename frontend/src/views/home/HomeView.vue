@@ -24,14 +24,13 @@
       <div v-else class="grid grid-auto">
         <router-link
           v-for="s in subjects" :key="s.id"
-          :to="`/courses/subject/${s.id}`"
+          :to="`/subjects/${s.id}`"
           class="subject-card card card-hover"
           :style="{ '--subject-color': s.color }"
         >
           <div class="subject-icon">{{ s.icon }}</div>
           <div class="subject-name">{{ s.name }}</div>
           <div class="subject-desc text-secondary text-sm">{{ s.description || '暂无描述' }}</div>
-          <div class="subject-count text-sm">{{ s.courseCount }} 门课程</div>
         </router-link>
       </div>
     </section>

@@ -17,6 +17,5 @@ const router = useRouter()
 const shortcuts = [
   { label: '用户管理', path: '/admin/users', icon: '👥' },
   { label: '科目管理', path: '/admin/subjects', icon: '🗂️' },
-  { label: '课程管理', path: '/admin/courses', icon: '📖' },
 ]
 </script>
