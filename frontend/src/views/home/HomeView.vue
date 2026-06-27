@@ -1,10 +1,12 @@
 <template>
   <div class="hub">
 
-    <!-- ── 左侧：科目栏 ─────────────────────────────────────── -->
+    <!-- ── 左侧栏 ────────────────────────────────────────────── -->
     <aside class="hub-sidebar">
-      <div class="hub-sidebar-title">科目</div>
-      <div v-if="loadingSubjects" class="skeleton" style="height:160px;border-radius:8px" />
+
+      <!-- 科目列表 -->
+      <div class="hub-section-label">科目</div>
+      <div v-if="loadingSubjects" class="skeleton" style="height:120px;border-radius:8px;margin:0 8px" />
       <nav v-else class="hub-subject-list">
         <button
           v-for="s in subjects" :key="s.id"
@@ -19,11 +21,79 @@
           </span>
         </button>
       </nav>
+
+      <!-- 用户区 -->
+      <div class="hub-user-panel">
+        <div class="hub-divider" />
+
+        <!-- 头像 + 基础信息 -->
+        <div class="hub-user-header">
+          <div class="hub-user-avatar">{{ auth.user?.username?.[0]?.toUpperCase() }}</div>
+          <div class="hub-user-meta">
+            <div class="hub-user-name">{{ auth.user?.displayName || auth.user?.username }}</div>
+            <span class="badge badge-info" style="font-size:10px;padding:1px 6px">学生</span>
+          </div>
+        </div>
+
+        <!-- 用户名 -->
+        <div class="hub-field">
+          <label class="hub-field-label">用户名</label>
+          <div class="hub-field-row">
+            <input
+              v-if="editingUsername"
+              v-model="usernameInput"
+              class="hub-input"
+              placeholder="新用户名"
+              maxlength="50"
+              @keydown.enter="saveUsername"
+              @keydown.esc="editingUsername = false"
+            />
+            <span v-else class="hub-field-value">{{ auth.user?.username }}</span>
+            <button v-if="!editingUsername" class="hub-btn-text" @click="startUsernameEdit">编辑</button>
+            <template v-else>
+              <button class="hub-btn-text primary" :class="{ loading: savingUsername }" @click="saveUsername">保存</button>
+              <button class="hub-btn-text" @click="editingUsername = false">取消</button>
+            </template>
+          </div>
+        </div>
+
+        <!-- 别名 -->
+        <div class="hub-field">
+          <label class="hub-field-label">别名</label>
+          <div class="hub-field-row">
+            <input
+              v-if="editingName"
+              v-model="nameInput"
+              class="hub-input"
+              placeholder="留空则使用用户名"
+              maxlength="50"
+              @keydown.enter="saveName"
+              @keydown.esc="editingName = false"
+            />
+            <span v-else class="hub-field-value">{{ auth.user?.displayName || '未设置' }}</span>
+            <button v-if="!editingName" class="hub-btn-text" @click="startNameEdit">编辑</button>
+            <template v-else>
+              <button class="hub-btn-text primary" :class="{ loading: savingName }" @click="saveName">保存</button>
+              <button class="hub-btn-text" @click="editingName = false">取消</button>
+            </template>
+          </div>
+        </div>
+
+        <!-- 修改密码（始终可见） -->
+        <div class="hub-pw-section">
+          <div class="hub-field-label" style="margin-bottom:6px">修改密码</div>
+          <input v-model="pwForm.old" type="password" class="hub-input" placeholder="旧密码" style="margin-bottom:6px" />
+          <input v-model="pwForm.new" type="password" class="hub-input" placeholder="新密码（至少 6 位）" style="margin-bottom:8px" />
+          <button class="hub-btn-action" :class="{ loading: pwLoading }" @click="submitPw">保存密码</button>
+        </div>
+
+        <!-- 退出 -->
+        <button class="hub-btn-logout" @click="handleLogout">退出登录</button>
+      </div>
     </aside>
 
     <!-- ── 右侧：视频列表 ────────────────────────────────────── -->
     <main class="hub-content">
-      <!-- 标题 -->
       <div v-if="active" class="hub-content-header" :style="{ borderLeftColor: active.color }">
         <span class="hub-content-icon">{{ active.icon }}</span>
         <div>
@@ -32,10 +102,8 @@
         </div>
       </div>
 
-      <!-- 加载骨架 -->
       <div v-if="loadingVideos" class="skeleton" style="height:200px;border-radius:8px;margin-top:20px" />
 
-      <!-- 空状态 -->
       <div v-else-if="!active" class="hub-empty">
         <span class="empty-icon">👈</span>
         <p>从左侧选择科目</p>
@@ -45,22 +113,16 @@
         <p>该科目暂无视频</p>
       </div>
 
-      <!-- 视频列表 -->
       <ol v-else class="hub-video-list">
         <li v-for="(v, i) in videos" :key="v.index" class="hub-video-item">
           <span class="hub-video-num">{{ i + 1 }}</span>
           <div class="hub-video-info">
-            <a :href="v.url" target="_blank" rel="noopener" class="hub-video-title">
-              {{ v.title }}
-            </a>
+            <a :href="v.url" target="_blank" rel="noopener" class="hub-video-title">{{ v.title }}</a>
             <span class="hub-video-url">{{ v.url }}</span>
           </div>
           <div class="hub-video-actions">
             <a :href="v.url" target="_blank" rel="noopener" class="btn-bilibili">▶ B站</a>
-            <button
-              :class="['btn-copy', copyState[v.index]]"
-              @click="copyUrl(v)"
-            >
+            <button :class="['btn-copy', copyState[v.index]]" @click="copyUrl(v)">
               {{ copyLabel(v.index) }}
             </button>
           </div>
@@ -73,9 +135,18 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { subjectApi } from '@/api/course'
+import { authApi, updateDisplayName, updateUsername } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import type { Subject, BilibiliVideo } from '@/types'
 
+const auth = useAuthStore()
+const router = useRouter()
+const toast = useToast()
+
+// ── 科目 & 视频 ──────────────────────────────────────────────
 const subjects = ref<Subject[]>([])
 const active = ref<Subject | null>(null)
 const activeId = ref<number | null>(null)
@@ -83,8 +154,6 @@ const videos = ref<BilibiliVideo[]>([])
 const loadingSubjects = ref(false)
 const loadingVideos = ref(false)
 const videoCountMap = reactive<Record<number, number>>({})
-
-// 'idle' | 'ok' | 'fail'
 const copyState = reactive<Record<number, string>>({})
 
 function copyLabel(index: number) {
@@ -129,72 +198,148 @@ onMounted(async () => {
     loadingSubjects.value = false
   }
 })
+
+// ── 用户名编辑 ────────────────────────────────────────────────
+const editingUsername = ref(false)
+const usernameInput = ref('')
+const savingUsername = ref(false)
+
+function startUsernameEdit() {
+  usernameInput.value = auth.user?.username ?? ''
+  editingUsername.value = true
+}
+
+async function saveUsername() {
+  const val = usernameInput.value.trim()
+  if (!val) { toast.warning('用户名不能为空'); return }
+  savingUsername.value = true
+  try {
+    await updateUsername(val)
+    await auth.fetchMe()
+    editingUsername.value = false
+    toast.success('用户名已更新')
+  } catch {
+    toast.error('保存失败，用户名可能已被占用')
+  } finally {
+    savingUsername.value = false
+  }
+}
+
+// ── 别名编辑 ──────────────────────────────────────────────────
+const editingName = ref(false)
+const nameInput = ref('')
+const savingName = ref(false)
+
+function startNameEdit() {
+  nameInput.value = auth.user?.displayName ?? ''
+  editingName.value = true
+}
+
+async function saveName() {
+  savingName.value = true
+  try {
+    await updateDisplayName(nameInput.value.trim())
+    await auth.fetchMe()
+    editingName.value = false
+    toast.success('别名已更新')
+  } catch {
+    toast.error('保存失败，请重试')
+  } finally {
+    savingName.value = false
+  }
+}
+
+// ── 修改密码 ──────────────────────────────────────────────────
+const pwForm = ref({ old: '', new: '' })
+const pwLoading = ref(false)
+
+async function submitPw() {
+  if (!pwForm.value.old || !pwForm.value.new) { toast.warning('请填写完整'); return }
+  if (pwForm.value.new.length < 6) { toast.warning('新密码至少 6 位'); return }
+  pwLoading.value = true
+  try {
+    await authApi.changePassword(pwForm.value.old, pwForm.value.new)
+    toast.success('密码修改成功')
+    pwForm.value = { old: '', new: '' }
+  } catch {
+    toast.error('旧密码错误或修改失败')
+  } finally {
+    pwLoading.value = false
+  }
+}
+
+// ── 退出登录 ──────────────────────────────────────────────────
+function handleLogout() {
+  auth.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
 /* ── 整体框架 ─────────────────────────────────────────────── */
 .hub {
   display: flex;
-  gap: 0;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 58px);
   background: var(--c-bg);
 }
 
-/* ── 左侧科目栏 ───────────────────────────────────────────── */
+/* ── 左侧栏 ───────────────────────────────────────────────── */
 .hub-sidebar {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   border-right: 1px solid var(--c-border);
-  padding: 0 0 24px;
   background: var(--c-surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
-.hub-sidebar-title {
+
+.hub-section-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--c-text-3);
-  padding: 20px 16px 10px;
+  padding: 18px 16px 8px;
 }
+
 .hub-subject-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 0 8px;
 }
+
 .hub-subject-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
+  gap: 9px;
+  padding: 8px 10px;
   border-radius: 8px;
   border-left: 3px solid transparent;
   color: var(--c-text-2);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
   text-align: left;
   background: transparent;
   width: 100%;
 }
-.hub-subject-item:hover {
-  background: var(--c-info-light);
-  color: var(--c-text);
-}
+.hub-subject-item:hover { background: var(--c-info-light); color: var(--c-text); }
 .hub-subject-item.active {
   background: color-mix(in srgb, var(--accent, var(--c-primary)) 12%, transparent);
   color: var(--accent, var(--c-primary));
   font-weight: 600;
 }
-.hub-subject-icon { font-size: 16px; flex-shrink: 0; }
+.hub-subject-icon { font-size: 15px; flex-shrink: 0; }
 .hub-subject-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hub-subject-count {
-  font-size: 11px;
+  font-size: 10px;
   background: var(--c-border);
   color: var(--c-text-3);
   border-radius: 10px;
-  padding: 1px 7px;
+  padding: 1px 6px;
   flex-shrink: 0;
 }
 .hub-subject-item.active .hub-subject-count {
@@ -202,11 +347,141 @@ onMounted(async () => {
   color: var(--accent, var(--c-primary));
 }
 
+/* ── 用户面板 ─────────────────────────────────────────────── */
+.hub-user-panel {
+  padding: 0 10px 16px;
+  margin-top: auto;
+}
+.hub-divider {
+  height: 1px;
+  background: var(--c-border);
+  margin: 12px 0;
+}
+.hub-user-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.hub-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hub-user-meta { min-width: 0; }
+.hub-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 3px;
+}
+
+/* ── 字段 ─────────────────────────────────────────────────── */
+.hub-field { margin-bottom: 8px; }
+.hub-field-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+  margin-bottom: 4px;
+}
+.hub-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.hub-field-value {
+  font-size: 12px;
+  color: var(--c-text-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-bg);
+  color: var(--c-text);
+  outline: none;
+  width: 100%;
+}
+.hub-input:focus { border-color: var(--c-primary); }
+
+.hub-btn-text {
+  font-size: 11px;
+  color: var(--c-text-3);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.hub-btn-text:hover { background: var(--c-info-light); color: var(--c-text); }
+.hub-btn-text.primary { color: var(--c-primary); }
+.hub-btn-text.primary:hover { background: var(--c-primary-light); }
+
+/* ── 密码区 ───────────────────────────────────────────────── */
+.hub-pw-section {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+.hub-btn-action {
+  width: 100%;
+  padding: 7px 0;
+  border-radius: var(--r-sm);
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.hub-btn-action:hover { background: var(--c-primary-hover); }
+
+.hub-btn-logout {
+  width: 100%;
+  padding: 7px 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: 1px solid var(--c-border);
+  color: var(--c-danger);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+.hub-btn-logout:hover { background: #fee2e2; }
+
 /* ── 右侧内容区 ───────────────────────────────────────────── */
 .hub-content {
   flex: 1;
   min-width: 0;
   padding: 24px 28px;
+  overflow-y: auto;
 }
 
 .hub-content-header {
@@ -258,8 +533,8 @@ onMounted(async () => {
 .hub-video-item:hover { box-shadow: var(--shadow); }
 
 .hub-video-num {
-  min-width: 26px;
-  font-size: 14px;
+  min-width: 24px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--c-text-3);
   flex-shrink: 0;
@@ -296,7 +571,6 @@ onMounted(async () => {
   align-items: center;
   flex-shrink: 0;
 }
-
 .btn-bilibili {
   display: inline-flex;
   align-items: center;
@@ -315,6 +589,7 @@ onMounted(async () => {
 .btn-copy {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 5px 12px;
   border-radius: var(--r-sm);
   border: 1px solid var(--c-border);
@@ -326,30 +601,16 @@ onMounted(async () => {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
   min-width: 72px;
-  justify-content: center;
 }
 .btn-copy:hover { background: var(--c-info-light); color: var(--c-text); }
-.btn-copy.ok {
-  background: var(--c-success-light, #dcfce7);
-  color: var(--c-success, #16a34a);
-  border-color: var(--c-success, #16a34a);
-}
-.btn-copy.fail {
-  background: #fee2e2;
-  color: var(--c-danger);
-  border-color: var(--c-danger);
-}
+.btn-copy.ok { background: #dcfce7; color: #16a34a; border-color: #16a34a; }
+.btn-copy.fail { background: #fee2e2; color: var(--c-danger); border-color: var(--c-danger); }
 
 /* ── 响应式 ───────────────────────────────────────────────── */
-@media (max-width: 680px) {
+@media (max-width: 720px) {
   .hub { flex-direction: column; }
-  .hub-sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--c-border);
-    padding-bottom: 12px;
-  }
-  .hub-subject-list { flex-direction: row; flex-wrap: wrap; padding: 0 12px; }
+  .hub-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--c-border); }
+  .hub-subject-list { flex-direction: row; flex-wrap: wrap; }
   .hub-subject-item { width: auto; }
   .hub-content { padding: 16px; }
   .hub-video-actions { flex-direction: column; gap: 4px; }

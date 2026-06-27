@@ -12,23 +12,16 @@
           <router-link v-if="auth.isAdmin" to="/admin/home" class="hl-nav-admin">
             管理后台
           </router-link>
-          <router-link v-if="auth.user" to="/user/profile" class="hl-nav-user">
+          <span v-if="auth.user" class="hl-nav-user">
             <span class="hl-avatar">{{ auth.user?.username?.[0]?.toUpperCase() }}</span>
             <span>{{ auth.user.username }}</span>
-          </router-link>
+          </span>
         </nav>
       </div>
     </header>
 
     <!-- 主内容 -->
     <main class="hl-main">
-      <nav v-if="breadcrumbs.length > 1" class="breadcrumb">
-        <template v-for="(crumb, i) in breadcrumbs" :key="crumb.label">
-          <router-link v-if="crumb.path" :to="crumb.path">{{ crumb.label }}</router-link>
-          <span v-else class="breadcrumb-current">{{ crumb.label }}</span>
-          <span v-if="i < breadcrumbs.length - 1" class="breadcrumb-sep">/</span>
-        </template>
-      </nav>
       <RouterView />
     </main>
 
@@ -114,7 +107,7 @@ const breadcrumbs = computed(() => {
   flex-shrink: 0;
 }
 
-.hl-main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 24px; }
+.hl-main { flex: 1; padding: 0; overflow: hidden; }
 
 .hl-footer {
   text-align: center; padding: 16px;
