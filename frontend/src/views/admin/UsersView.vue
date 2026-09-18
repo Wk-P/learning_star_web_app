@@ -28,6 +28,7 @@
           </span>
         </div>
         <div class="user-actions">
+          <button class="btn-outline" @click="handleResetPassword(u.id, u.username)">重置密码</button>
           <button v-if="!u.is_staff" class="btn-danger" @click="handleDelete(u.id)">删除</button>
         </div>
       </div>
@@ -82,6 +83,23 @@ async function handleDelete(id: number) {
   if (!confirm('确认删除该用户？')) return
   await api.deleteUser(id)
   await loadUsers()
+}
+
+async function handleResetPassword(id: number, username: string) {
+  const newPassword = prompt(`为用户「${username}」设置新密码（至少 6 位）：`)
+  if (!newPassword) return
+  if (newPassword.length < 6) {
+    alert('新密码至少 6 位')
+    return
+  }
+  try {
+    await api.resetUserPassword(id, newPassword)
+    alert('密码已重置')
+  } catch (e: unknown) {
+    const res = e as Response
+    const body = await res.json().catch(() => ({}))
+    alert(body.detail || '重置失败')
+  }
 }
 </script>
 

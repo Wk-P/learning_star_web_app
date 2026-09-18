@@ -94,6 +94,12 @@ export const api = {
   deleteUser(id: number) {
     return request<void>(`/user/${id}/delete/`, { method: 'DELETE' })
   },
+  resetUserPassword(id: number, newPassword: string) {
+    return request<{ detail: string }>(`/user/${id}/reset-password/`, {
+      method: 'POST',
+      body: JSON.stringify({ new_password: newPassword }),
+    })
+  },
 
   // admin: permissions
   getMediaRoots() {

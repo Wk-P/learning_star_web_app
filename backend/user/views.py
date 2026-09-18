@@ -105,6 +105,24 @@ class MePasswordView(APIView):
         return Response({'detail': '密码已修改'})
 
 
+class UserResetPasswordView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request, pk: int):
+        new_password = request.data.get('new_password', '').strip()
+        if len(new_password) < 6:
+            return Response({'detail': '新密码至少 6 位'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({'detail': '密码已重置'})
+
+
 class UserDeleteView(APIView):
     permission_classes = [IsAdminUser]
 

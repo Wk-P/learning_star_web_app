@@ -41,6 +41,7 @@
           <span v-else>登录</span>
         </button>
         <p class="switch-hint">没有账号？<button type="button" class="text-btn" @click="switchMode('register')">立即注册</button></p>
+        <p class="switch-hint">忘记密码？请联系管理员重置</p>
       </form>
 
       <!-- register form -->
