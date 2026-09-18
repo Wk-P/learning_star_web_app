@@ -20,6 +20,8 @@
           <button type="submit" class="btn btn-primary btn-lg login-btn" :class="{ loading }">
             {{ loading ? '' : '登 录' }}
           </button>
+          <a class="forgot-link" @click.prevent="showForgotTip = !showForgotTip">忘记密码？</a>
+          <p v-if="showForgotTip" class="forgot-tip">请联系管理员为您重置密码</p>
         </form>
       </div>
     </div>
@@ -39,6 +41,7 @@ const toast = useToast()
 
 const loading = ref(false)
 const form = ref({ username: '', password: '' })
+const showForgotTip = ref(false)
 
 async function handleLogin() {
   if (!form.value.username || !form.value.password) {
@@ -90,6 +93,15 @@ async function handleLogin() {
 .form-title { font-size: 22px; font-weight: 700; color: var(--c-text); margin-bottom: 28px; text-align: center; }
 .form { display: flex; flex-direction: column; gap: 16px; }
 .login-btn { width: 100%; margin-top: 8px; font-size: 15px; letter-spacing: 2px; }
+.forgot-link {
+  margin-top: 12px; text-align: center; font-size: 13px;
+  color: var(--c-text-secondary, #64748b); cursor: pointer; text-decoration: none;
+}
+.forgot-link:hover { color: #4f46e5; text-decoration: underline; }
+.forgot-tip {
+  margin-top: 4px; text-align: center; font-size: 13px;
+  color: var(--c-text-secondary, #64748b);
+}
 
 @media (max-width: 640px) {
   .login-box { flex-direction: column; width: 95vw; min-height: unset; }
