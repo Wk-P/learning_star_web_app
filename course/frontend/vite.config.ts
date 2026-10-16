@@ -6,15 +6,23 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // 生产环境部署在 http://<host>/course/ 下
+  base: mode === 'production' ? '/course/' : '/',
   plugins: [
     vue(),
     vueJsx(),
     vueDevTools(),
   ],
+  server: {
+    proxy: {
+      '/api': { target: 'http://localhost:8001', changeOrigin: true },
+      '/media': { target: 'http://localhost:8001', changeOrigin: true },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-})
+}))

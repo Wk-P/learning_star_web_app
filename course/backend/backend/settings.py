@@ -1,13 +1,15 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-^fqf+t71mewva1xo=5oyu^_=+27hazu*+ki0m@7n)&j!3+&@t*'
+# 生产环境通过 systemd EnvironmentFile（deploy/env/course.env）注入，本地开发使用默认值
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.auth',
@@ -51,7 +53,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── 文件上传 ──────────────────────────────────────────────────────────────────
-MEDIA_URL = '/media/'
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
 MEDIA_ROOT = BASE_DIR / 'media'
 DATA_UPLOAD_MAX_MEMORY_SIZE = 52_428_800   # 50 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800   # 50 MB
@@ -77,11 +79,9 @@ SIMPLE_JWT = {
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://139.224.222.27:8080',
-]
+CORS_ALLOWED_ORIGINS = [o for o in os.environ.get(
+    'CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174'
+).split(',') if o]
 
 from corsheaders.defaults import default_headers  # noqa: E402
 CORS_ALLOW_HEADERS = [

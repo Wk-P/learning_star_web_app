@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 
-const BASE = '/api'
+// 生产环境由 .env.production 设为 /topik，开发环境走 vite 代理
+const BASE = `${import.meta.env.VITE_API_PREFIX ?? ''}/api`
 
 async function refreshAccessToken(): Promise<boolean> {
   const auth = useAuthStore()
@@ -36,7 +37,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       res = await fetch(`${BASE}${path}`, { ...options, headers: makeHeaders() })
     } else {
       auth.clearTokens()
-      window.location.href = '/login'
+      window.location.href = `${import.meta.env.BASE_URL}login`
       throw res
     }
   }

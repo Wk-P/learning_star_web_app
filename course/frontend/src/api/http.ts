@@ -2,7 +2,7 @@ import axios, { type AxiosError } from 'axios'
 import { useToast } from '@/composables/useToast'
 
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
   timeout: 10_000,
 })
 
@@ -82,8 +82,9 @@ http.interceptors.response.use(
 function redirectToLogin() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login'
+  const loginPath = `${import.meta.env.BASE_URL}login`
+  if (window.location.pathname !== loginPath) {
+    window.location.href = loginPath
   }
 }
 

@@ -1,1 +1,9 @@
 .DS_Store
+node_modules/
+dist/
+__pycache__/
+.venv/
+*.sqlite3
+media/
+staticfiles/
+**/backend/.env.production

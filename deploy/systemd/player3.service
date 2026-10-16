@@ -1,0 +1,20 @@
+[Unit]
+Description=Player3 (TOPIK) Django Gunicorn
+After=network.target
+
+[Service]
+User=ecs-user
+WorkingDirectory=/home/ecs-user/player3/backend
+# settings.py 会加载 backend/.env.production（服务器本地文件，不入库）
+Environment=DJANGO_ENV=production
+ExecStart=/home/ecs-user/player3/.venv/bin/gunicorn backend.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 3 \
+    --timeout 300 \
+    --access-logfile /home/ecs-user/player3/log/gunicorn_access.log \
+    --error-logfile /home/ecs-user/player3/log/gunicorn_error.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=Course System Django Backend
+After=network.target
+
+[Service]
+User=ecs-user
+WorkingDirectory=/home/ecs-user/course_system/backend
+Environment=DJANGO_SETTINGS_MODULE=backend.settings
+# 服务器本地文件，模板见 deploy/env/course.env.example
+EnvironmentFile=/home/ecs-user/course_system/.env
+ExecStart=/home/ecs-user/course_system/.venv/bin/gunicorn backend.wsgi:application \
+    --bind 127.0.0.1:8001 \
+    --workers 2 \
+    --timeout 120
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -11,11 +11,11 @@ function parseJwtPayload(token: string): Record<string, unknown> {
 }
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${value}; path=/; SameSite=Lax`
+  document.cookie = `${name}=${value}; path=${import.meta.env.BASE_URL}; SameSite=Lax`
 }
 
 function clearCookie(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0`
+  document.cookie = `${name}=; path=${import.meta.env.BASE_URL}; max-age=0`
 }
 
 export const useAuthStore = defineStore('auth', () => {
