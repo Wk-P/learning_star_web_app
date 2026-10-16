@@ -10,6 +10,7 @@
 - 邮箱在 topik 已被其他账号占用：仍创建账号，但邮箱留空，并在报告中注明。
 直接读取 course 的 SQLite 文件，不依赖 course 的 Django 代码。
 """
+import datetime
 import sqlite3
 
 from django.contrib.auth import get_user_model
@@ -26,7 +27,7 @@ def _aware(value):
     dt = parse_datetime(value) if isinstance(value, str) else value
     if dt is None:
         return timezone.now()
-    return dt if timezone.is_aware(dt) else timezone.make_aware(dt, timezone.utc)
+    return dt if timezone.is_aware(dt) else timezone.make_aware(dt, datetime.timezone.utc)
 
 
 class Command(BaseCommand):

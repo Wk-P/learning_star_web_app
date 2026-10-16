@@ -19,7 +19,7 @@ COURSE_DIR=$REMOTE_HOME/course_system
 WEB_DIR=$REMOTE_HOME/learning_star
 
 ssh_run() { ssh "${SSH_OPTS[@]}" "$SSH_HOST" "$@"; }
-sync() { rsync -az --info=stats1 -e "ssh ${SSH_OPTS[*]}" "$@"; }
+sync() { rsync -az -e "ssh ${SSH_OPTS[*]}" "$@"; }
 
 BACKEND_EXCLUDES=(
   --exclude '__pycache__/' --exclude '*.pyc'
@@ -69,6 +69,7 @@ deploy_nginx() {
   ssh_run "mkdir -p $WEB_DIR"
   sync --delete "$ROOT/deploy/" "$SSH_HOST:$WEB_DIR/deploy/"
   ssh_run "set -e; cd $WEB_DIR/deploy
+    sudo mkdir -p /etc/nginx/snippets
     sudo cp nginx/learning_star_proxy.conf /etc/nginx/snippets/
     sudo cp nginx/learning_star.conf /etc/nginx/conf.d/
     # 旧的分站配置（:80 player3 / :8080 course）停用，保留 .bak 便于回滚
