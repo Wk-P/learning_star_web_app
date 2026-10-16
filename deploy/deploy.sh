@@ -91,6 +91,8 @@ case "${1:-}" in
   course) deploy_course ;;
   nginx)  check_jwt_key; deploy_nginx ;;
   users)  shift; import_users "$@" ;;
-  all)    check_jwt_key; deploy_topik; deploy_course; deploy_web; deploy_nginx ;;
+  # nginx 步骤会更新 systemd 单元（含 EnvironmentFile），之后再重启一次两个后端使其生效
+  all)    check_jwt_key; deploy_topik; deploy_course; deploy_web; deploy_nginx
+          ssh_run "sudo systemctl restart player3 course-backend && systemctl is-active player3 course-backend" ;;
   *) sed -n '2,10p' "$0"; exit 1 ;;
 esac
