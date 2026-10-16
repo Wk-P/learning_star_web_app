@@ -49,12 +49,15 @@ make dev-course-api   # :8001
 make dev-web          # :5173，代理 /api/topik、/api/course、/media 到两个后端
 ```
 
+首次开发：`cp topik/backend/.env.develop.example topik/backend/.env.develop` 并按需修改。
 开发环境两个后端默认使用同一个开发用 `JWT_SIGNING_KEY`，无需额外配置。
+**任何 `.env*` 文件都不要提交到 git。**
 
 ## 部署（上海节点 `shanghai_node`，139.224.222.27）
 
 首次部署前，在服务器上按 `deploy/env/` 的模板准备两个后端的环境变量文件，
-`JWT_SIGNING_KEY` 两边必须相同（建议取 topik 当前的 `SECRET_KEY`，已登录用户不会掉线）。
+`JWT_SIGNING_KEY` 两边必须相同，且必须是新生成的随机值（旧的生产密钥曾泄露在 git 历史中，已作废）。
+生成：`python3 -c "import secrets; print(secrets.token_urlsafe(50))"`
 
 ```bash
 ./deploy/deploy.sh users            # 预览 course 账号并入 topik
