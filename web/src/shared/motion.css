@@ -1,0 +1,99 @@
+/* ══════════════════════════════════════════════════════════════
+   Learning Star · 共享动效
+   两站通用：缓动/时长 token、路由切换、滚动入场、悬浮/按压反馈、
+   骨架屏、列表过渡、弹窗；并完整尊重系统“减少动态效果”设置。
+══════════════════════════════════════════════════════════════ */
+:root {
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 560ms;
+  --stagger: 55ms;
+}
+
+/* ── 路由切换：<Transition name="page" mode="out-in"> ─────────── */
+.page-enter-active { transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-out); }
+.page-leave-active { transition: opacity var(--dur-1) ease-in; }
+.page-enter-from   { opacity: 0; transform: translateY(10px); }
+.page-leave-to     { opacity: 0; }
+
+/* ── 滚动入场：v-reveal="index" ─────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--dur-4) var(--ease-out),
+    transform var(--dur-4) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger));
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* ── 卡片悬浮 / 按压 ───────────────────────────────────────── */
+.lift {
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) ease,
+    background-color var(--dur-2) ease;
+}
+@media (hover: hover) {
+  .lift:hover { transform: translateY(-3px); }
+}
+.lift:active, .press:active { transform: scale(0.98); transition-duration: var(--dur-1); }
+.press { transition: transform var(--dur-1) var(--ease-out); }
+
+/* ── 列表增删：<TransitionGroup name="list"> ───────────────── */
+.list-move,
+.list-enter-active,
+.list-leave-active { transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-out); }
+.list-enter-from   { opacity: 0; transform: translateY(8px); }
+.list-leave-to     { opacity: 0; transform: translateX(-12px); }
+.list-leave-active { position: absolute; }
+
+/* ── 弹窗：<Transition name="pop"> ─────────────────────────── */
+.pop-enter-active, .pop-leave-active { transition: opacity var(--dur-2) ease; }
+.pop-enter-active > *, .pop-leave-active > * { transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease; }
+.pop-enter-from, .pop-leave-to { opacity: 0; }
+.pop-enter-from > *, .pop-leave-to > * { transform: translateY(12px) scale(0.97); opacity: 0; }
+
+/* ── 骨架屏 ─────────────────────────────────────────────────── */
+.sk {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--sk-base, rgba(127, 127, 127, 0.12));
+}
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--sk-shine, rgba(255, 255, 255, 0.35)), transparent);
+  animation: sk-shimmer 1.4s var(--ease-in-out) infinite;
+}
+@keyframes sk-shimmer { to { transform: translateX(100%); } }
+
+/* ── 图片渐显（配合 loading="lazy"） ───────────────────────── */
+.img-fade { opacity: 0; transition: opacity var(--dur-4) var(--ease-out); }
+.img-fade.is-loaded { opacity: 1; }
+
+/* ── 键盘焦点 ───────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--focus-ring, currentColor);
+  outline-offset: 2px;
+}
+
+/* ── 减少动态效果 ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal, .img-fade { opacity: 1; transform: none; }
+}

@@ -1,0 +1,36 @@
+/* 课程栏目的深色配色（浅色 token 定义在 course/assets/base.css，构建时作用域为 .mod-course） */
+[data-theme="dark"] .mod-course {
+  --c-primary:       #6f9be8;
+  --c-primary-hover: #9dbcf2;
+  --c-primary-light: rgba(129, 140, 248, 0.14);
+  --c-primary-ring:  rgba(129, 140, 248, 0.25);
+  --c-success-light: rgba(16, 185, 129, 0.16);
+  --c-warning-light: rgba(245, 158, 11, 0.16);
+  --c-danger-light:  rgba(239, 68, 68, 0.16);
+  --c-info-light:    rgba(255, 255, 255, 0.05);
+
+  --c-bg:            transparent;
+  --c-surface:       rgba(255, 255, 255, 0.04);
+  --c-surface-glass: rgba(10, 20, 42, 0.82);
+  --c-border:        rgba(255, 255, 255, 0.08);
+  --c-border-hover:  rgba(255, 255, 255, 0.16);
+
+  --c-text:          #e2e8f0;
+  --c-text-2:        #a0aabb;
+  --c-text-3:        #6b7588;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow:    0 6px 18px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --sk-base:   rgba(255, 255, 255, 0.05);
+  --sk-shine:  rgba(255, 255, 255, 0.08);
+}
+/* 课程栏目与整站共用背景 */
+.mod-course { background: transparent; min-height: 0; }
+
+/* 深色下卡片用半透明底；弹窗需要不透明，避免透出下层内容 */
+[data-theme="dark"] .mod-course .modal,
+[data-theme="dark"].mod-course .modal {
+  background: #13234a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

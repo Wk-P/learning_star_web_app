@@ -1,0 +1,19 @@
+@import './base.css';
+@import '@shared/motion.css';
+@import './element.css';
+@import './course-theme.css';
+
+body { color: var(--text); }
+
+a { color: inherit; text-decoration: none; }
+
+/* 整站框架尺寸：course 栏目的吸顶元素据此定位 */
+:root {
+  --shell-header: 60px;
+  --shell-subnav: 50px;
+  --shell-offset: calc(var(--shell-header) + var(--shell-subnav));
+  --shell-tabbar: 62px;
+}
+@media (max-width: 768px) {
+  :root { --shell-header: 52px; }
+}

@@ -61,7 +61,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800   # 50 MB
 # ── REST Framework ────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'api.authentication.TopikJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -72,10 +72,9 @@ REST_FRAMEWORK = {
 }
 
 # ── JWT ────────────────────────────────────────────────────────────────────────
+# 令牌由 topik 后端签发，这里只校验；两边必须配置相同的 JWT_SIGNING_KEY
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
+    'SIGNING_KEY': os.environ.get('JWT_SIGNING_KEY') or ('dev-only-shared-jwt-key' if DEBUG else SECRET_KEY),
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────

@@ -1,13 +1,9 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
 
-from api.views.auth_views import CustomTokenObtainPairView
-
+# 登录 / 刷新令牌统一由 topik 后端提供（见 api/authentication.py）
 urlpatterns = [
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include('api.urls')),
 ]
 

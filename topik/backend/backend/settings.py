@@ -149,6 +149,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': False,
+    # course 后端用同一个密钥校验 topik 签发的令牌（统一登录）
+    'SIGNING_KEY': os.environ.get('JWT_SIGNING_KEY') or ('dev-only-shared-jwt-key' if DEBUG else SECRET_KEY),
 }
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
