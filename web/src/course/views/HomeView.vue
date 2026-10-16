@@ -62,7 +62,7 @@
 
           <ol v-else class="hub-video-list">
             <li v-for="(v, i) in filtered" :key="v.index" v-reveal="i" class="hub-video-item lift">
-              <a :href="v.url" target="_blank" rel="noopener" class="hub-video-main">
+              <a :href="cleanUrl(v.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hub-video-main">
                 <span class="hub-video-num">{{ String(v.index + 1).padStart(2, '0') }}</span>
                 <span class="hub-video-info">
                   <span class="hub-video-title">{{ v.title }}</span>
@@ -136,13 +136,48 @@ function copyLabel(index: number) {
   return copyState[index] === 'ok' ? '已复制' : '复制链接'
 }
 
-async function copyUrl(v: BilibiliVideo) {
+// B 站链接统一成 https、去掉 spm_id_from / vd_source 等追踪参数（只保留分P），
+// 打开时不带 Referer——来自陌生站点的 Referer 与追踪参数容易触发 B 站风控返回 412
+function cleanUrl(raw: string) {
   try {
-    await navigator.clipboard.writeText(v.url)
+    const u = new URL(raw.trim().replace(/^http:\/\//i, 'https://'))
+    if (!/(^|\.)bilibili\.com$|(^|\.)b23\.tv$/.test(u.hostname)) return u.href
+    const p = u.searchParams.get('p')
+    u.search = p ? `?p=${p}` : ''
+    u.hash = ''
+    return u.href
+  } catch {
+    return raw.trim()
+  }
+}
+
+// navigator.clipboard 只在 HTTPS / localhost 可用；HTTP 下退回 execCommand
+function legacyCopy(text: string) {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none'
+  document.body.appendChild(ta)
+  ta.select()
+  ta.setSelectionRange(0, text.length) // iOS Safari
+  let ok = false
+  try { ok = document.execCommand('copy') } catch { ok = false }
+  document.body.removeChild(ta)
+  return ok
+}
+
+async function copyUrl(v: BilibiliVideo) {
+  const text = cleanUrl(v.url)
+  let ok = false
+  if (window.isSecureContext && navigator.clipboard) {
+    try { await navigator.clipboard.writeText(text); ok = true } catch { ok = false }
+  }
+  if (!ok) ok = legacyCopy(text)
+  if (ok) {
     copyState[v.index] = 'ok'
     toast.success('链接已复制')
-  } catch {
-    toast.error('复制失败，请长按链接手动复制')
+  } else {
+    toast.error(`复制失败，请手动复制：${text}`)
   }
   setTimeout(() => { copyState[v.index] = 'idle' }, 2000)
 }
