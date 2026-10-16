@@ -55,6 +55,7 @@ const router = createRouter({
           meta: { section: 'course', requiresAuth: true },
           children: [
             { path: '',        name: 'course',         component: () => import('@/course/views/HomeView.vue'),    meta: { title: '课程' } },
+            { path: 'path',    name: 'course-path',    component: () => import('@/course/views/LearningPathView.vue'), meta: { title: '完整学习路线' } },
             { path: 'roadmap', name: 'course-roadmap', component: () => import('@/course/views/RoadmapView.vue'), meta: { title: '学习路线图' } },
             { path: 'mindmap', name: 'course-mindmap', component: () => import('@/course/views/MindmapView.vue'), meta: { title: '思维导图' } },
           ],
