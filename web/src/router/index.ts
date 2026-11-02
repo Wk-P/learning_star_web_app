@@ -15,8 +15,10 @@ const legacy: RouteRecordRaw[] = [
   { path: '/user/account', redirect: '/me' },
   { path: '/user/profile', redirect: '/me' },
   { path: '/home', redirect: '/course' },
-  { path: '/roadmap', redirect: '/course/roadmap' },
-  { path: '/mindmap', redirect: '/course/mindmap' },
+  { path: '/roadmap', redirect: '/course/path' },
+  { path: '/course/roadmap', redirect: '/course/path' },
+  { path: '/mindmap', redirect: '/course/path' },
+  { path: '/course/mindmap', redirect: '/course/path' },
   { path: '/admin/login', redirect: (to) => ({ path: '/login', query: { redirect: '/admin', ...to.query } }) },
   { path: '/admin/home', redirect: '/admin' },
   { path: '/admin/video', redirect: '/admin/topik/video' },
@@ -56,8 +58,6 @@ const router = createRouter({
           children: [
             { path: '',        name: 'course',         component: () => import('@/course/views/HomeView.vue'),    meta: { title: '课程' } },
             { path: 'path',    name: 'course-path',    component: () => import('@/course/views/LearningPathView.vue'), meta: { title: '完整学习路线' } },
-            { path: 'roadmap', name: 'course-roadmap', component: () => import('@/course/views/RoadmapView.vue'), meta: { title: '学习路线图' } },
-            { path: 'mindmap', name: 'course-mindmap', component: () => import('@/course/views/MindmapView.vue'), meta: { title: '思维导图' } },
           ],
         },
 

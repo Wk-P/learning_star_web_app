@@ -21,7 +21,7 @@
             最后更新：{{ formatDate(meta.updatedAt!) }}
           </div>
         </div>
-        <a href="/roadmap" target="_blank" class="btn btn-secondary btn-sm" style="margin-left:auto">预览</a>
+        
       </div>
       <div v-else class="status-info">
         <span class="status-dot status-dot--empty" />

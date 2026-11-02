@@ -43,8 +43,6 @@ export const SECTIONS: Record<SectionKey, Section> = {
     tabs: [
       { label: '科目视频', to: '/course', exact: true },
       { label: '学习路线', to: '/course/path' },
-      { label: '课程体系图', to: '/course/roadmap' },
-      { label: '思维导图', to: '/course/mindmap' },
     ],
   },
 }
