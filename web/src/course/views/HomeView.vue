@@ -41,9 +41,30 @@
             </div>
           </header>
 
-          <div v-if="videos.length > 4" class="hub-search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-            <input v-model="keyword" type="search" placeholder="搜索本科目的视频…" aria-label="搜索视频" />
+          <!-- 筛选栏：关键词 + 阶段 -->
+          <div v-if="videos.length" class="hub-filter">
+            <label class="hub-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+              <input v-model="keyword" type="search" placeholder="搜索本科目的视频…" aria-label="搜索视频" />
+              <kbd v-if="!keyword" class="hub-kbd">/</kbd>
+            </label>
+            <div class="hub-stage-track" role="tablist" aria-label="按阶段筛选">
+              <span class="hub-stage-thumb" :style="thumbStyle" aria-hidden="true" />
+              <button
+                v-for="(o, i) in stageOptions"
+                :key="o.key"
+                :ref="el => (stageBtns[i] = el as HTMLElement)"
+                role="tab"
+                :aria-selected="stage === o.key"
+                :class="['hub-stage-opt', { on: stage === o.key }]"
+                :style="{ '--lv': o.color }"
+                @click="stage = o.key"
+              >
+                <span v-if="o.step" class="hub-stage-dot">{{ o.step }}</span>
+                {{ o.label }}
+                <span class="hub-stage-count">{{ o.count }}</span>
+              </button>
+            </div>
           </div>
 
           <div v-if="loadingVideos" class="hub-video-list">
@@ -55,39 +76,52 @@
             <p>这个科目还没有视频，过段时间再来看看</p>
           </div>
 
-          <div v-else-if="filtered.length === 0" class="hub-empty">
+          <div v-else-if="groups.length === 0" class="hub-empty">
             <span class="empty-icon">🔍</span>
-            <p>没有找到“{{ keyword }}”相关的视频</p>
+            <p>没有符合条件的视频</p>
+            <button class="btn btn-secondary btn-sm" @click="resetFilter">清除筛选</button>
           </div>
 
-          <ol v-else class="hub-video-list">
-            <li v-for="(v, i) in filtered" :key="v.index" v-reveal="i" class="hub-video-item lift">
-              <a :href="cleanUrl(v.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hub-video-main">
-                <span class="hub-video-num">{{ String(v.index + 1).padStart(2, '0') }}</span>
-                <span class="hub-video-info">
-                  <span class="hub-video-title">{{ v.title }}</span>
-                  <span class="hub-video-meta">
-                    <span class="hub-bili-tag">bilibili</span>
-                    <span v-if="bvid(v.url)" class="hub-video-bv">{{ bvid(v.url) }}</span>
-                  </span>
-                </span>
-                <span class="hub-video-play" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z" /></svg>
-                  <span>去观看</span>
-                </span>
-              </a>
-              <button
-                class="hub-copy press"
-                :class="copyState[v.index]"
-                :aria-label="`复制《${v.title}》的链接`"
-                :title="copyLabel(v.index)"
-                @click="copyUrl(v)"
-              >
-                <svg v-if="copyState[v.index] === 'ok'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>
-              </button>
-            </li>
-          </ol>
+          <div v-else class="hub-stages">
+            <section v-for="g in groups" :key="g.key" class="hub-stage" :style="{ '--lv': g.color }">
+              <header class="hub-stage-head">
+                <span class="hub-stage-badge">{{ g.step || '·' }}</span>
+                <div class="hub-stage-text">
+                  <h2>{{ g.label }}</h2>
+                  <p>{{ g.hint }}</p>
+                </div>
+                <span class="hub-stage-num">{{ g.items.length }} 个视频</span>
+              </header>
+              <ol class="hub-video-list">
+                <li v-for="(v, i) in g.items" :key="v.index" v-reveal="i" class="hub-video-item lift">
+                  <a :href="cleanUrl(v.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hub-video-main">
+                    <span class="hub-video-num">{{ String(v.index + 1).padStart(2, '0') }}</span>
+                    <span class="hub-video-info">
+                      <span class="hub-video-title">{{ v.title }}</span>
+                      <span class="hub-video-meta">
+                        <span class="hub-bili-tag">bilibili</span>
+                        <span v-if="bvid(v.url)" class="hub-video-bv">{{ bvid(v.url) }}</span>
+                      </span>
+                    </span>
+                    <span class="hub-video-play" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z" /></svg>
+                      <span>去观看</span>
+                    </span>
+                  </a>
+                  <button
+                    class="hub-copy press"
+                    :class="copyState[v.index]"
+                    :aria-label="`复制《${v.title}》的链接`"
+                    :title="copyLabel(v.index)"
+                    @click="copyUrl(v)"
+                  >
+                    <svg v-if="copyState[v.index] === 'ok'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>
+                  </button>
+                </li>
+              </ol>
+            </section>
+          </div>
         </div>
 
         <div v-else-if="!loadingSubjects" class="hub-empty">
@@ -100,11 +134,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, nextTick, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { subjectApi } from '@/course/api/course'
 import { useToast } from '@/course/composables/useToast'
-import type { Subject, BilibiliVideo } from '@/course/types'
+import type { Subject, BilibiliVideo, VideoLevel } from '@/course/types'
+import { LEVELS } from '@/course/levels'
+
+function useEventListener<K extends keyof WindowEventMap>(t: Window, type: K, fn: (e: WindowEventMap[K]) => void) {
+  onMounted(() => t.addEventListener(type, fn))
+  onBeforeUnmount(() => t.removeEventListener(type, fn))
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -119,10 +159,62 @@ const loadingVideos = ref(false)
 const cache = reactive<Record<number, BilibiliVideo[]>>({})
 const videos = computed(() => (activeId.value != null ? cache[activeId.value] : undefined) ?? [])
 
+// ── 筛选：关键词 + 阶段（入门/基础/进阶，一个视频可出现在多个阶段） ──
+const UNLEVELED = '未分级'
+type StageKey = 'all' | VideoLevel | typeof UNLEVELED
+
 const keyword = ref('')
-const filtered = computed(() => {
+const stage = ref<StageKey>('all')
+
+const searched = computed(() => {
   const k = keyword.value.trim().toLowerCase()
   return k ? videos.value.filter(v => v.title.toLowerCase().includes(k)) : videos.value
+})
+
+const stageDefs = computed(() => {
+  const defs = LEVELS.map(l => ({
+    key: l.key as StageKey, label: l.key as string, step: l.step, hint: l.hint, color: l.color,
+    items: searched.value.filter(v => v.levels.includes(l.key)),
+  }))
+  const rest = searched.value.filter(v => !v.levels.length)
+  if (videos.value.some(v => !v.levels.length)) {
+    defs.push({ key: UNLEVELED as StageKey, label: UNLEVELED as string, step: 0, hint: '尚未归入阶段的视频', color: 'var(--c-text-3)', items: rest })
+  }
+  return defs
+})
+
+const stageOptions = computed(() => [
+  { key: 'all' as StageKey, label: '全部', step: 0, color: 'var(--accent)', count: searched.value.length },
+  ...stageDefs.value.map(d => ({ key: d.key, label: d.label, step: d.step, color: d.color, count: d.items.length })),
+])
+
+const groups = computed(() =>
+  stageDefs.value.filter(d => d.items.length && (stage.value === 'all' || stage.value === d.key)),
+)
+
+// 选中态滑块：跟随当前按钮的位置与宽度
+const stageBtns = ref<HTMLElement[]>([])
+const thumbStyle = ref<Record<string, string>>({})
+function syncThumb() {
+  const i = stageOptions.value.findIndex(o => o.key === stage.value)
+  const el = stageBtns.value[i]
+  if (!el) return
+  const color = stageOptions.value[i]!.color
+  thumbStyle.value = { width: `${el.offsetWidth}px`, transform: `translateX(${el.offsetLeft}px)`, '--lv': color }
+}
+watch([stage, stageOptions, activeId], () => nextTick(syncThumb), { flush: 'post' })
+useEventListener(window, 'resize', syncThumb)
+
+function resetFilter() {
+  keyword.value = ''
+  stage.value = 'all'
+}
+
+// 按 / 聚焦搜索框
+useEventListener(window, 'keydown', (e: KeyboardEvent) => {
+  if (e.key !== '/' || (e.target as HTMLElement)?.closest('input, textarea')) return
+  const input = document.querySelector<HTMLInputElement>('.hub-search input')
+  if (input) { e.preventDefault(); input.focus() }
 })
 
 function bvid(url: string) {
@@ -192,7 +284,7 @@ async function loadVideos(id: number) {
 async function selectSubject(s: Subject) {
   if (activeId.value === s.id) return
   activeId.value = s.id
-  keyword.value = ''
+  resetFilter()
   router.replace({ query: { ...route.query, s: String(s.id) } })
   if (cache[s.id]) return
   loadingVideos.value = true
@@ -312,15 +404,91 @@ onMounted(async () => {
 .hub-hero-stat strong { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--c-text); }
 .hub-hero-stat span { font-size: 12px; color: var(--c-text-3); }
 
-.hub-search {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 16px; padding: 0 14px; height: 42px;
-  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r);
-  color: var(--c-text-3);
-  transition: border-color var(--t), box-shadow var(--t);
+/* ── 筛选栏 ───────────────────────────────────────────────── */
+.hub-filter {
+  position: sticky; top: calc(var(--header-h) + 8px); z-index: 5;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 16px; padding: 8px;
+  background: var(--c-surface-glass, var(--c-surface));
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border: 1px solid var(--c-border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
 }
-.hub-search:focus-within { border-color: var(--c-primary); box-shadow: 0 0 0 4px var(--c-primary-ring); }
-.hub-search input { flex: 1; border: none; outline: none; background: transparent; color: var(--c-text); font-size: 14px; }
+.hub-search {
+  flex: 1 1 220px; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; height: 38px;
+  background: var(--c-bg, transparent); border-radius: var(--r);
+  box-shadow: inset 0 0 0 1px var(--c-border);
+  color: var(--c-text-3); cursor: text;
+  transition: box-shadow var(--t);
+}
+.hub-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.hub-search input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--c-text); font-size: 14px; }
+.hub-search input::-webkit-search-cancel-button { cursor: pointer; }
+.hub-kbd {
+  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 3px 6px; border-radius: 6px; color: var(--c-text-3);
+  box-shadow: inset 0 0 0 1px var(--c-border), 0 1px 0 var(--c-border);
+}
+
+.hub-stage-track {
+  position: relative; isolation: isolate;
+  display: flex; gap: 2px; padding: 3px;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--c-text-3) 10%, transparent);
+  overflow-x: auto; scrollbar-width: none; max-width: 100%;
+}
+.hub-stage-track::-webkit-scrollbar { display: none; }
+.hub-stage-thumb {
+  position: absolute; z-index: -1; top: 3px; bottom: 3px; left: 0;
+  border-radius: calc(var(--r) - 3px);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-sm), inset 0 -2px 0 var(--lv);
+  transition: transform 0.32s var(--ease-spring), width 0.32s var(--ease-spring), box-shadow var(--t);
+}
+.hub-stage-opt {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  height: 32px; padding: 0 12px; border-radius: calc(var(--r) - 3px);
+  font-size: 13px; font-weight: 600; color: var(--c-text-3); white-space: nowrap;
+  transition: color var(--t);
+}
+.hub-stage-opt:hover, .hub-stage-opt.on { color: var(--c-text); }
+.hub-stage-dot {
+  width: 18px; height: 18px; border-radius: 6px;
+  display: grid; place-items: center; font-size: 11px;
+  color: var(--lv); background: color-mix(in srgb, var(--lv) 15%, transparent);
+  transition: background var(--t), color var(--t);
+}
+.hub-stage-opt.on .hub-stage-dot { color: #fff; background: var(--lv); }
+.hub-stage-count { font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--c-text-3); }
+
+/* ── 阶段分区 ─────────────────────────────────────────────── */
+.hub-stages { display: flex; flex-direction: column; gap: 28px; margin-top: 20px; }
+.hub-stage { position: relative; }
+.hub-stage-head {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 10px; margin-bottom: 2px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--lv) 35%, var(--c-border));
+}
+.hub-stage-badge {
+  width: 34px; height: 34px; border-radius: 11px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, var(--lv), color-mix(in srgb, var(--lv) 70%, #000));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--lv) 30%, transparent);
+}
+.hub-stage-text { flex: 1; min-width: 0; }
+.hub-stage-text h2 { font-size: 17px; font-weight: 700; color: var(--c-text); letter-spacing: -0.01em; }
+.hub-stage-text p { font-size: 12px; color: var(--c-text-3); }
+.hub-stage-num {
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+  padding: 2px 10px; border-radius: var(--r-full);
+  color: var(--lv); background: color-mix(in srgb, var(--lv) 12%, transparent);
+}
+.hub-stage .hub-video-list { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.hub-stage .hub-video-item:hover { border-color: color-mix(in srgb, var(--lv) 45%, var(--c-border)); }
+.hub-stage .hub-video-num { color: color-mix(in srgb, var(--lv) 80%, #0f172a); background: color-mix(in srgb, var(--lv) 12%, transparent); }
 
 /* ── 视频卡片 ─────────────────────────────────────────────── */
 .hub-video-list {
@@ -439,5 +607,8 @@ onMounted(async () => {
   .hub-video-play span { display: none; }
   .hub-video-play { width: 34px; padding: 0; justify-content: center; }
   .hub-copy { width: 44px; }
+  .hub-filter { top: calc(var(--header-h) + 64px); }
+  .hub-stage .hub-video-list { grid-template-columns: minmax(0, 1fr); }
+  .hub-kbd { display: none; }
 }
 </style>

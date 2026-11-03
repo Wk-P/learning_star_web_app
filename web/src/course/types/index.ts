@@ -17,10 +17,13 @@ export interface Subject {
   color: string
 }
 
+export type VideoLevel = '入门' | '基础' | '进阶'
+
 export interface BilibiliVideo {
   index: number
   title: string
   url: string
+  levels: VideoLevel[]
 }
 
 export interface TokenPair {

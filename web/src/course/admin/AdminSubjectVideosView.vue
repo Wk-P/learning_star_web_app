@@ -20,6 +20,10 @@
         <div class="video-index text-muted text-sm">{{ i + 1 }}</div>
         <div class="video-info">
           <div class="video-title">{{ v.title }}</div>
+          <div class="video-levels">
+            <span v-for="l in LEVELS.filter(x => v.levels.includes(x.key))" :key="l.key" class="lv-badge" :style="{ '--lv': l.color }">{{ l.key }}</span>
+            <span v-if="!v.levels.length" class="lv-badge lv-none">未分级</span>
+          </div>
           <a :href="v.url" target="_blank" rel="noopener" class="video-url text-sm text-secondary">{{ v.url }}</a>
         </div>
         <div class="video-actions">
@@ -47,7 +51,12 @@
                 placeholder="【视频标题】 https://www.bilibili.com/video/..."
                 style="resize:vertical;font-size:13px"
               />
-              <p class="field-hint">与 txt 文件格式一致：标题 + 空格 + 链接</p>
+              <p v-if="addDuplicate" class="field-hint field-warn">已存在相同视频：「{{ addDuplicate.title }}」</p>
+              <p v-else class="field-hint">与 txt 文件格式一致：标题 + 空格 + 链接</p>
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label class="field-label">课程阶段（可多选）</label>
+              <LevelPicker v-model="addLevels" />
             </div>
           </div>
           <div class="modal-footer">
@@ -75,6 +84,10 @@
               <label class="field-label">B站链接</label>
               <input v-model="editForm.url" class="input" placeholder="https://www.bilibili.com/video/..." />
             </div>
+            <div class="field">
+              <label class="field-label">课程阶段（可多选）</label>
+              <LevelPicker v-model="editForm.levels" />
+            </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" @click="showEditModal = false">取消</button>
@@ -87,13 +100,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { adminSubjectApi } from '@/course/api/admin'
 import { subjectApi } from '@/course/api/course'
 import { useToast } from '@/course/composables/useToast'
 import { useConfirm } from '@/course/composables/useConfirm'
-import type { BilibiliVideo } from '@/course/types'
+import type { BilibiliVideo, VideoLevel } from '@/course/types'
+import LevelPicker from '@/course/components/LevelPicker.vue'
+import { LEVELS, videoKey } from '@/course/levels'
 
 const route = useRoute()
 const toast = useToast()
@@ -108,11 +123,19 @@ const saving = ref(false)
 // 添加弹窗
 const showAddModal = ref(false)
 const addLine = ref('')
+const addLevels = ref<VideoLevel[]>([])
+// 粘贴时即时提示重复（后端同样会拦截）
+const addDuplicate = computed(() => {
+  const m = addLine.value.match(/https?:\/\/\S+/)
+  if (!m) return null
+  const key = videoKey(m[0])
+  return videos.value.find(v => videoKey(v.url) === key) ?? null
+})
 
 // 编辑弹窗
 const showEditModal = ref(false)
 const editTarget = ref<BilibiliVideo | null>(null)
-const editForm = ref({ title: '', url: '' })
+const editForm = ref<{ title: string; url: string; levels: VideoLevel[] }>({ title: '', url: '', levels: [] })
 
 onMounted(async () => {
   loading.value = true
@@ -131,21 +154,23 @@ onMounted(async () => {
 
 function openAdd() {
   addLine.value = ''
+  addLevels.value = []
   showAddModal.value = true
 }
 
 function openEdit(v: BilibiliVideo) {
   editTarget.value = v
-  editForm.value = { title: v.title, url: v.url }
+  editForm.value = { title: v.title, url: v.url, levels: [...v.levels] }
   showEditModal.value = true
 }
 
 async function handleAdd() {
   const line = addLine.value.trim()
   if (!line) { toast.warning('请输入内容'); return }
+  if (addDuplicate.value) { toast.warning(`该视频已存在：「${addDuplicate.value.title}」`); return }
   saving.value = true
   try {
-    await adminSubjectApi.addVideo(subjectId, { line })
+    await adminSubjectApi.addVideo(subjectId, { line, levels: addLevels.value })
     const { data } = await adminSubjectApi.listVideos(subjectId)
     videos.value = data
     showAddModal.value = false
@@ -170,8 +195,8 @@ async function handleEditSave() {
     videos.value = data
     showEditModal.value = false
     toast.success('已更新')
-  } catch {
-    toast.error('保存失败')
+  } catch (e: any) {
+    toast.error(e?.response?.data?.detail || '保存失败')
   } finally {
     saving.value = false
   }
@@ -210,4 +235,11 @@ async function handleDelete(v: BilibiliVideo) {
 }
 .video-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .field-hint { font-size: 12px; color: var(--c-text-3); margin-top: 6px; }
+.field-warn { color: var(--c-warning, #d97706); font-weight: 600; }
+.video-levels { display: flex; gap: 6px; margin-bottom: 4px; }
+.lv-badge {
+  font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: var(--r-full);
+  color: var(--lv); background: color-mix(in srgb, var(--lv) 14%, transparent);
+}
+.lv-none { --lv: var(--c-text-3); }
 </style>

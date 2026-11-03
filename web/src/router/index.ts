@@ -25,7 +25,8 @@ const legacy: RouteRecordRaw[] = [
   { path: '/admin/audio', redirect: '/admin/topik/audio' },
   { path: '/admin/pdf', redirect: '/admin/topik/pdf' },
   { path: '/admin/subjects', redirect: '/admin/course/subjects' },
-  { path: '/admin/roadmap', redirect: '/admin/course/roadmap' },
+  { path: '/admin/roadmap', redirect: '/admin' },
+  { path: '/admin/course/roadmap', redirect: '/admin' },
 ]
 
 const router = createRouter({
@@ -83,7 +84,6 @@ const router = createRouter({
           children: [
             { path: 'subjects',                 name: 'admin-course-subjects', component: () => import('@/course/admin/AdminSubjectControlView.vue'), meta: { title: '课程 · 科目' } },
             { path: 'subjects/:subjectId/videos', name: 'admin-course-videos', component: () => import('@/course/admin/AdminSubjectVideosView.vue'),  meta: { title: '课程 · 视频链接' } },
-            { path: 'roadmap',                  name: 'admin-course-roadmap',  component: () => import('@/course/admin/AdminRoadmapView.vue'),        meta: { title: '课程 · 路线图' } },
           ],
         },
       ],

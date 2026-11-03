@@ -4,14 +4,13 @@ import string
 
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models import Subject
 from ..permissions import IsAdmin
 from ..serializers import SubjectSerializer, AdminUserSerializer, AdminUserCreateSerializer
-from .course_views import _subject_filepath, _read_videos, ROADMAP_FILE
+from .course_views import _subject_filepath, _read_videos, parse_levels, video_key
 
 User = get_user_model()
 
@@ -28,7 +27,14 @@ def _write_videos(filepath: str, videos: list[dict]) -> None:
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w', encoding='utf-8') as f:
         for v in videos:
-            f.write(f"{v['title']} {v['url']}\n")
+            levels = v.get('levels') or []
+            suffix = f" |{','.join(levels)}" if levels else ''
+            f.write(f"{v['title']} {v['url']}{suffix}\n")
+
+
+def _find_duplicate(videos: list[dict], url: str, skip: int | None = None):
+    key = video_key(url)
+    return next((v for i, v in enumerate(videos) if i != skip and video_key(v['url']) == key), None)
 
 
 # ── 用户管理（仅 admin） ──────────────────────────────────────────────────────
@@ -175,9 +181,13 @@ class AdminSubjectVideosView(APIView):
             return Response({'detail': '格式错误，标题或链接为空'}, status=status.HTTP_400_BAD_REQUEST)
         filepath = _subject_filepath(subject)
         videos = _read_videos(filepath)
-        videos.append({'title': title, 'url': url})
+        dup = _find_duplicate(videos, url)
+        if dup:
+            return Response({'detail': f'该视频已存在：「{dup["title"]}」'}, status=status.HTTP_409_CONFLICT)
+        levels = parse_levels(request.data.get('levels'))
+        videos.append({'title': title, 'url': url, 'levels': levels})
         _write_videos(filepath, videos)
-        return Response({'index': len(videos) - 1, 'title': title, 'url': url}, status=status.HTTP_201_CREATED)
+        return Response({'index': len(videos) - 1, 'title': title, 'url': url, 'levels': levels}, status=status.HTTP_201_CREATED)
 
     def put(self, request, subject_id):
         """整体替换视频列表。body: [{title, url}, ...]"""
@@ -186,36 +196,17 @@ class AdminSubjectVideosView(APIView):
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
         if not isinstance(request.data, list):
             return Response({'detail': '请提供列表数据'}, status=status.HTTP_400_BAD_REQUEST)
-        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip()} for v in request.data]
+        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels'))}
+                  for v in request.data]
+        seen = set()
+        for v in videos:
+            key = video_key(v['url'])
+            if key in seen:
+                return Response({'detail': f'列表中有重复视频：「{v["title"]}」'}, status=status.HTTP_409_CONFLICT)
+            seen.add(key)
         filepath = _subject_filepath(subject)
         _write_videos(filepath, videos)
         return Response(_read_videos(filepath))
-
-
-class AdminRoadmapView(APIView):
-    permission_classes = [IsAdmin]
-    parser_classes = [MultiPartParser]
-
-    def get(self, request):
-        if not os.path.exists(ROADMAP_FILE):
-            return Response({'exists': False})
-        stat = os.stat(ROADMAP_FILE)
-        return Response({'exists': True, 'size': stat.st_size, 'updatedAt': stat.st_mtime})
-
-    def post(self, request):
-        file = request.FILES.get('file')
-        if not file:
-            return Response({'detail': '请上传文件'}, status=status.HTTP_400_BAD_REQUEST)
-        if not file.name.lower().endswith('.html'):
-            return Response({'detail': '只支持 .html 文件'}, status=status.HTTP_400_BAD_REQUEST)
-        if file.size > 5 * 1024 * 1024:
-            return Response({'detail': '文件不能超过 5MB'}, status=status.HTTP_400_BAD_REQUEST)
-        content = file.read().decode('utf-8')
-        os.makedirs(os.path.dirname(ROADMAP_FILE), exist_ok=True)
-        with open(ROADMAP_FILE, 'w', encoding='utf-8') as f:
-            f.write(content)
-        stat = os.stat(ROADMAP_FILE)
-        return Response({'exists': True, 'size': stat.st_size, 'updatedAt': stat.st_mtime})
 
 
 class AdminSubjectVideoDetailView(APIView):
@@ -240,7 +231,13 @@ class AdminSubjectVideoDetailView(APIView):
         if 'title' in request.data:
             videos[real_index]['title'] = request.data['title'].strip()
         if 'url' in request.data:
-            videos[real_index]['url'] = request.data['url'].strip()
+            url = request.data['url'].strip()
+            dup = _find_duplicate(videos, url, skip=real_index)
+            if dup:
+                return Response({'detail': f'该视频已存在：「{dup["title"]}」'}, status=status.HTTP_409_CONFLICT)
+            videos[real_index]['url'] = url
+        if 'levels' in request.data:
+            videos[real_index]['levels'] = parse_levels(request.data['levels'])
         _write_videos(filepath, videos)
         return Response({'index': real_index, **{k: v for k, v in videos[real_index].items() if k != 'index'}})
 

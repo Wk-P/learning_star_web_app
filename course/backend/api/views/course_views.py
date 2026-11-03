@@ -1,4 +1,5 @@
 import os
+import re
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -9,7 +10,6 @@ from ..models import Subject
 from ..serializers import SubjectSerializer
 
 BILIBILI_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'bilibili')
-ROADMAP_FILE = os.path.join(BILIBILI_DIR, 'template.html')
 
 
 def _subject_filepath(subject: Subject) -> str:
@@ -17,7 +17,28 @@ def _subject_filepath(subject: Subject) -> str:
     return os.path.join(BILIBILI_DIR, f'{slug}.txt')
 
 
+LEVELS = ('入门', '基础', '进阶')
+
+
+def parse_levels(raw) -> list[str]:
+    """接受列表或逗号分隔字符串，只保留合法等级并按 入门→基础→进阶 排序。"""
+    if isinstance(raw, str):
+        raw = raw.replace('，', ',').split(',')
+    picked = {str(x).strip() for x in (raw or [])}
+    return [lv for lv in LEVELS if lv in picked]
+
+
+def video_key(url: str) -> str:
+    """查重用：B 站按 BV 号（+分P），其他链接去掉查询参数与协议。"""
+    m = re.search(r'BV[0-9A-Za-z]{10}', url)
+    if m:
+        p = re.search(r'[?&]p=(\d+)', url)
+        return f"{m.group(0)}#{p.group(1) if p and p.group(1) != '1' else ''}"
+    return re.sub(r'^https?://', '', url.split('?')[0].split('#')[0]).rstrip('/').lower()
+
+
 def _read_videos(filepath: str) -> list[dict]:
+    """每行：「标题 https://... |入门,基础」，等级后缀可省略。"""
     if not os.path.exists(filepath):
         return []
     videos = []
@@ -26,6 +47,10 @@ def _read_videos(filepath: str) -> list[dict]:
             line = line.strip()
             if not line:
                 continue
+            levels = []
+            head, sep, tail = line.rpartition(' |')
+            if sep and ' http' in head and 'http' not in tail:
+                line, levels = head, parse_levels(tail)
             idx = line.find(' http')
             if idx != -1:
                 title = line[:idx].strip()
@@ -33,9 +58,8 @@ def _read_videos(filepath: str) -> list[dict]:
             else:
                 title = line
                 url = ''
-            videos.append({'index': i, 'title': title, 'url': url})
+            videos.append({'index': i, 'title': title, 'url': url, 'levels': levels})
     return videos
-
 
 class SubjectListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -55,14 +79,3 @@ class SubjectVideosView(APIView):
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
         return Response(_read_videos(_subject_filepath(subject)))
 
-
-class RoadmapView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        if not os.path.exists(ROADMAP_FILE):
-            return Response({'detail': '路线图暂未生成'}, status=status.HTTP_404_NOT_FOUND)
-        with open(ROADMAP_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
-        stat = os.stat(ROADMAP_FILE)
-        return Response({'content': content, 'size': stat.st_size, 'updatedAt': stat.st_mtime})

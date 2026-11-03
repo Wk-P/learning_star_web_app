@@ -67,7 +67,6 @@ const groups = [
   ] },
   { title: SECTIONS.course.label, color: SECTIONS.course.color, items: [
     { to: '/admin/course/subjects', label: '科目与视频', icon: 'book' },
-    { to: '/admin/course/roadmap', label: '学习路线图', icon: 'file' },
   ] },
 ] as const
 

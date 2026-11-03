@@ -1,5 +1,4 @@
 <template>
-  <Teleport to="#course-layer">
     <div class="toast-container">
       <div
         v-for="t in toasts"
@@ -11,7 +10,6 @@
         <span>{{ t.message }}</span>
       </div>
     </div>
-  </Teleport>
 </template>
 
 <script setup lang="ts">

@@ -1,5 +1,4 @@
 <template>
-  <Teleport to="#course-layer">
     <div v-if="confirmState.visible" class="modal-backdrop" @click.self="close(false)">
       <div class="modal">
         <div class="modal-header">
@@ -22,7 +21,6 @@
         </div>
       </div>
     </div>
-  </Teleport>
 </template>
 
 <script setup lang="ts">

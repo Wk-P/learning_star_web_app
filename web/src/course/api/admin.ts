@@ -1,5 +1,5 @@
 import http from './http'
-import type { Subject, BilibiliVideo } from '@/course/types'
+import type { Subject, BilibiliVideo, VideoLevel } from '@/course/types'
 
 // ── 科目管理 ──────────────────────────────────────────────────────────────────
 export const adminSubjectApi = {
@@ -10,11 +10,11 @@ export const adminSubjectApi = {
   delete: (id: number) => http.delete(`/admin/subjects/${id}/`),
   listVideos: (subjectId: number) =>
     http.get<BilibiliVideo[]>(`/admin/subjects/${subjectId}/videos/`),
-  addVideo: (subjectId: number, data: { line: string }) =>
+  addVideo: (subjectId: number, data: { line: string; levels: VideoLevel[] }) =>
     http.post<BilibiliVideo>(`/admin/subjects/${subjectId}/videos/`, data),
-  replaceVideos: (subjectId: number, videos: { title: string; url: string }[]) =>
+  replaceVideos: (subjectId: number, videos: { title: string; url: string; levels: VideoLevel[] }[]) =>
     http.put<BilibiliVideo[]>(`/admin/subjects/${subjectId}/videos/`, videos),
-  updateVideo: (subjectId: number, index: number, data: Partial<{ title: string; url: string }>) =>
+  updateVideo: (subjectId: number, index: number, data: Partial<{ title: string; url: string; levels: VideoLevel[] }>) =>
     http.patch(`/admin/subjects/${subjectId}/videos/${index}/`, data),
   deleteVideo: (subjectId: number, index: number) =>
     http.delete(`/admin/subjects/${subjectId}/videos/${index}/`),

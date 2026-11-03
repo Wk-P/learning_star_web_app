@@ -35,7 +35,7 @@ deploy/           nginx、systemd、环境变量模板、部署脚本
 | `/` | 门户首页 |
 | `/login` | 登录 / 注册 |
 | `/topik`、`/topik/video`、`/topik/audio`、`/topik/file` | 韩语栏目 |
-| `/course`、`/course/roadmap`、`/course/mindmap` | 课程栏目 |
+| `/course`、`/course/path` | 课程栏目 |
 | `/me` | 我的账户 |
 | `/admin/...` | 管理后台（两个栏目合并） |
 
