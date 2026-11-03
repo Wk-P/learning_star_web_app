@@ -14,9 +14,3 @@ export const LEVELS: LevelMeta[] = [
   { key: '进阶', step: 3, hint: '专题深入与综合提升', color: '#9333ea' },
 ]
 
-// B 站只看 BV 号查重（同一 BV 的不同分P也算重复），其余链接忽略协议与查询参数；与后端 video_key 保持一致
-export function videoKey(url: string) {
-  const bv = url.match(/BV[0-9A-Za-z]{10}/)?.[0]
-  if (bv) return bv
-  return url.split(/[?#]/)[0]!.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase()
-}

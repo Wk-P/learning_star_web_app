@@ -75,7 +75,7 @@
             <span v-for="t in v.tags" :key="t" class="sv-tag">#{{ t }}</span>
             <a :href="v.url" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="sv-link" :title="v.url">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
-              {{ shortUrl(v.url) }}
+              {{ shortLink(v.url) }}
             </a>
           </div>
         </div>
@@ -105,11 +105,17 @@
                 v-model="addLine"
                 class="textarea"
                 rows="2"
-                placeholder="【视频标题】 https://www.bilibili.com/video/..."
+                placeholder="【视频标题】 https://www.bilibili.com/video/… 或 https://youtu.be/…"
                 style="resize:vertical;font-size:13px"
               />
               <p v-if="addDuplicate" class="field-hint field-warn">已存在相同视频：「{{ addDuplicate.title }}」</p>
-              <p v-else class="field-hint">与 txt 文件格式一致：标题 + 空格 + 链接</p>
+              <p v-else-if="addLink" class="field-hint">
+                识别为：<b :style="{ color: PLATFORMS[addLink.platform].color }">{{ PLATFORMS[addLink.platform].label }}</b>
+                <template v-if="addLink.id"> · {{ addLink.id }}</template>
+                <template v-else-if="addLink.platform !== 'other'"> · 未识别出视频 ID，查重按完整链接</template>
+                <template v-else> · {{ addLink.host }}</template>
+              </p>
+              <p v-else class="field-hint">标题 + 空格 + 视频链接，支持 B 站 / YouTube / 其他链接</p>
             </div>
             <div class="field" style="margin-top:14px">
               <label class="field-label">课程阶段</label>
@@ -143,7 +149,11 @@
             </div>
             <div class="field">
               <label class="field-label">B站链接</label>
-              <input v-model="editForm.url" class="input" placeholder="https://www.bilibili.com/video/..." />
+              <input v-model="editForm.url" class="input" placeholder="https://www.bilibili.com/video/… 或 https://youtu.be/…" />
+              <p v-if="editForm.url.trim()" class="field-hint">
+                识别为：<b :style="{ color: PLATFORMS[parseVideoLink(editForm.url).platform].color }">{{ PLATFORMS[parseVideoLink(editForm.url).platform].label }}</b>
+                · {{ shortLink(editForm.url) }}
+              </p>
             </div>
             <div class="field">
               <label class="field-label">课程阶段</label>
@@ -173,7 +183,8 @@ import { useToast } from '@/course/composables/useToast'
 import { useConfirm } from '@/course/composables/useConfirm'
 import type { BilibiliVideo, Subject, VideoLevel } from '@/course/types'
 import LevelPicker from '@/course/components/LevelPicker.vue'
-import { LEVELS, videoKey } from '@/course/levels'
+import { LEVELS } from '@/course/levels'
+import { PLATFORMS, parseVideoLink, shortLink, videoKey } from '@/course/videoLink'
 
 const route = useRoute()
 const toast = useToast()
@@ -196,10 +207,11 @@ function splitTags(s: string) {
   return [...new Set(s.split(/[,，、]/).map(t => t.trim()).filter(Boolean))]
 }
 // 粘贴时即时提示重复（后端同样会拦截）
+const addUrl = computed(() => addLine.value.match(/https?:\/\/\S+/)?.[0] ?? '')
+const addLink = computed(() => (addUrl.value ? parseVideoLink(addUrl.value) : null))
 const addDuplicate = computed(() => {
-  const m = addLine.value.match(/https?:\/\/\S+/)
-  if (!m) return null
-  const key = videoKey(m[0])
+  if (!addUrl.value) return null
+  const key = videoKey(addUrl.value)
   return videos.value.find(v => videoKey(v.url) === key) ?? null
 })
 
@@ -231,15 +243,6 @@ const stageOptions = computed(() => {
   return opts.map(o => ({ ...o, count: searched.value.filter(v => inStage(v, o.key)).length }))
 })
 const shown = computed(() => searched.value.filter(v => inStage(v, stage.value)))
-
-function shortUrl(url: string) {
-  const bv = url.match(/BV[0-9A-Za-z]{10}/)?.[0]
-  if (bv) {
-    const p = url.match(/[?&]p=(\d+)/)?.[1]
-    return p && p !== '1' ? `${bv} · P${p}` : bv
-  }
-  try { return new URL(url).hostname } catch { return url }
-}
 
 // 编辑弹窗
 const showEditModal = ref(false)

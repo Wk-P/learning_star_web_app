@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import parse_qs, urlparse
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -40,30 +41,46 @@ def parse_tags(raw) -> list[str]:
     return tags
 
 
-# 按链接域名自动识别平台，打上对应标签
-PLATFORM_TAGS = (
-    ('B站', re.compile(r'(^|\.)(bilibili\.com|b23\.tv|bili2233\.cn)$')),
-    ('YouTube', re.compile(r'(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$')),
-)
+# 视频链接解析：识别平台并提取视频 ID。规则与前端 web/src/course/videoLink.ts 保持一致；新增平台两边各加一条
+BILI_HOST = re.compile(r'(^|\.)(bilibili\.com|b23\.tv|bili2233\.cn)$')
+YT_HOST = re.compile(r'(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$')
+PLATFORM_LABELS = {'bilibili': 'B站', 'youtube': 'YouTube'}
+
+
+def parse_video_link(url: str) -> tuple[str, str]:
+    """返回 (platform, id)；platform 为 bilibili / youtube / other，识别不出 ID 时 id 为空。"""
+    u = urlparse(re.sub(r'^http://', 'https://', url.strip(), flags=re.I))
+    host = (u.hostname or '').lower()
+    if BILI_HOST.search(host):
+        m = re.search(r'BV[0-9A-Za-z]{10}', url)
+        return 'bilibili', m.group(0) if m else ''
+    if YT_HOST.search(host):
+        vid = (u.path[1:12] if host.endswith('youtu.be') else '') \
+            or (parse_qs(u.query).get('v') or [''])[0]
+        if not vid:
+            m = re.match(r'^/(?:shorts|embed|live|v)/([\w-]{11})', u.path)
+            vid = m.group(1) if m else ''
+        return 'youtube', vid if re.fullmatch(r'[\w-]{11}', vid) else ''
+    return 'other', ''
 
 
 def platform_tag(url: str) -> str | None:
-    host = re.sub(r'^https?://', '', url.strip(), flags=re.I).split('/')[0].split('?')[0].split(':')[0].lower()
-    return next((tag for tag, pat in PLATFORM_TAGS if pat.search(host)), None)
+    return PLATFORM_LABELS.get(parse_video_link(url)[0])
 
 
 def with_platform_tag(url: str, tags: list[str]) -> list[str]:
-    """平台标签放在最前；已有则不重复。"""
+    """平台标签放在最前；已有则不重复，换了平台时去掉旧的。"""
     t = platform_tag(url)
-    return [t, *[x for x in tags if x != t]] if t else tags
+    rest = [x for x in tags if x not in PLATFORM_LABELS.values()]
+    return [t, *rest] if t else rest
 
 
 def video_key(url: str) -> str:
-    """查重用：B 站只看 BV 号（同一 BV 的不同分P也算重复），其他链接去掉查询参数与协议。"""
-    m = re.search(r'BV[0-9A-Za-z]{10}', url)
-    if m:
-        return m.group(0)
-    return re.sub(r'^https?://', '', url.split('?')[0].split('#')[0]).rstrip('/').lower()
+    """查重键：能识别出视频 ID 的按「平台:ID」（同一 BV 的不同分P也算重复），否则按去掉协议与参数的链接。"""
+    platform, vid = parse_video_link(url)
+    if vid:
+        return f'{platform}:{vid}'
+    return re.sub(r'^https?://', '', url.strip().split('?')[0].split('#')[0], flags=re.I).rstrip('/').lower()
 
 
 def _read_videos(filepath: str) -> list[dict]:

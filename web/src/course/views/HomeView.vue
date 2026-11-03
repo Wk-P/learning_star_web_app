@@ -112,14 +112,14 @@
               </header>
               <ol class="hub-video-list">
                 <li v-for="(v, i) in g.items" :key="v.index" v-reveal="i" class="hub-video-item lift">
-                  <a :href="cleanUrl(v.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hub-video-main">
+                  <a :href="cleanUrl(v.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hub-video-main" :style="{ '--pf': platformOf(v).color }">
                     <span class="hub-video-num">{{ String(v.index + 1).padStart(2, '0') }}</span>
                     <span class="hub-video-info">
                       <span class="hub-video-title">{{ v.title }}</span>
                       <span class="hub-video-meta">
-                        <span class="hub-bili-tag">bilibili</span>
-                        <span v-if="bvid(v.url)" class="hub-video-bv">{{ bvid(v.url) }}</span>
-                        <span v-for="t in v.tags" :key="t" class="hub-video-tag">#{{ t }}</span>
+                        <span class="hub-platform-tag" :style="{ '--pf': platformOf(v).color }">{{ platformOf(v).label }}</span>
+                        <span class="hub-video-bv">{{ shortLink(v.url) }}</span>
+                        <span v-for="t in otherTags(v)" :key="t" class="hub-video-tag">#{{ t }}</span>
                       </span>
                     </span>
                     <span class="hub-video-play" aria-hidden="true">
@@ -159,6 +159,7 @@ import { subjectApi } from '@/course/api/course'
 import { useToast } from '@/course/composables/useToast'
 import type { Subject, BilibiliVideo, VideoLevel } from '@/course/types'
 import { LEVELS } from '@/course/levels'
+import { PLATFORMS, cleanUrl, parseVideoLink, shortLink } from '@/course/videoLink'
 
 function useEventListener<K extends keyof WindowEventMap>(t: Window, type: K, fn: (e: WindowEventMap[K]) => void) {
   onMounted(() => t.addEventListener(type, fn))
@@ -255,8 +256,13 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
   if (input) { e.preventDefault(); input.focus() }
 })
 
-function bvid(url: string) {
-  return url.match(/BV[0-9A-Za-z]{10}/)?.[0] ?? ''
+const PLATFORM_LABELS = new Set(Object.values(PLATFORMS).map(p => p.label))
+function platformOf(v: BilibiliVideo) {
+  return PLATFORMS[parseVideoLink(v.url).platform]
+}
+// 平台已单独显示，标签里不再重复
+function otherTags(v: BilibiliVideo) {
+  return (v.tags ?? []).filter(t => !PLATFORM_LABELS.has(t))
 }
 
 // ── 复制链接 ─────────────────────────────────────────────────
@@ -264,21 +270,6 @@ const copyState = reactive<Record<number, string>>({})
 
 function copyLabel(index: number) {
   return copyState[index] === 'ok' ? '已复制' : '复制链接'
-}
-
-// B 站链接统一成 https、去掉 spm_id_from / vd_source 等追踪参数（只保留分P），
-// 打开时不带 Referer——来自陌生站点的 Referer 与追踪参数容易触发 B 站风控返回 412
-function cleanUrl(raw: string) {
-  try {
-    const u = new URL(raw.trim().replace(/^http:\/\//i, 'https://'))
-    if (!/(^|\.)bilibili\.com$|(^|\.)b23\.tv$/.test(u.hostname)) return u.href
-    const p = u.searchParams.get('p')
-    u.search = p ? `?p=${p}` : ''
-    u.hash = ''
-    return u.href
-  } catch {
-    return raw.trim()
-  }
 }
 
 // navigator.clipboard 只在 HTTPS / localhost 可用；HTTP 下退回 execCommand
@@ -586,9 +577,9 @@ onMounted(async () => {
 }
 .hub-video-tag { padding: 1px 7px; border-radius: 99px; font-size: 11px; color: var(--c-text-2, var(--c-text)); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .hub-video-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--c-text-3); }
-.hub-bili-tag {
+.hub-platform-tag {
   padding: 0 6px; border-radius: 4px; font-weight: 600;
-  color: var(--c-bilibili); background: #fff0f5;
+  color: var(--pf); background: color-mix(in srgb, var(--pf) 12%, transparent);
 }
 .hub-video-bv { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
@@ -596,11 +587,11 @@ onMounted(async () => {
   display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
   height: 34px; padding: 0 14px; border-radius: var(--r-full);
   font-size: 13px; font-weight: 600; color: #fff;
-  background: var(--c-bilibili);
-  box-shadow: 0 4px 12px rgba(251, 114, 153, 0.3);
+  background: var(--pf, var(--c-bilibili));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--pf, var(--c-bilibili)) 30%, transparent);
   transition: transform var(--t), box-shadow var(--t);
 }
-.hub-video-main:hover .hub-video-play { transform: translateX(2px); box-shadow: 0 6px 16px rgba(251, 114, 153, 0.4); }
+.hub-video-main:hover .hub-video-play { transform: translateX(2px); box-shadow: 0 6px 16px color-mix(in srgb, var(--pf, var(--c-bilibili)) 40%, transparent); }
 
 .hub-copy {
   width: 52px; flex-shrink: 0;

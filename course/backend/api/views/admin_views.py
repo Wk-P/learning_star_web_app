@@ -251,9 +251,8 @@ class AdminSubjectVideoDetailView(APIView):
             videos[real_index]['levels'] = levels
         if 'tags' in request.data:
             videos[real_index]['tags'] = parse_tags(request.data['tags'])
-        # 链接改了平台也要跟着变：先去掉旧平台标签，再按新链接补上
-        videos[real_index]['tags'] = with_platform_tag(
-            videos[real_index]['url'], [t for t in videos[real_index].get('tags', []) if t not in ('B站', 'YouTube')])
+        # 链接改了平台也要跟着变：with_platform_tag 会去掉旧平台标签再按新链接补上
+        videos[real_index]['tags'] = with_platform_tag(videos[real_index]['url'], videos[real_index].get('tags', []))
         _write_videos(filepath, videos)
         return Response({'index': real_index, **{k: v for k, v in videos[real_index].items() if k != 'index'}})
 
