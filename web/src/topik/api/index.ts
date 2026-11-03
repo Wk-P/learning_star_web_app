@@ -23,7 +23,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) throw res
-  return res.json()
+  // 204 等无响应体的成功请求（如删除）直接返回，避免 res.json() 抛错导致后续刷新不执行
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const api = {
