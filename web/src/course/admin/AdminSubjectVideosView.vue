@@ -100,12 +100,12 @@
           </div>
           <div class="modal-body" style="padding-top:20px">
             <div class="field">
-              <label class="field-label">粘贴一行</label>
+              <label class="field-label">粘贴链接</label>
               <textarea
                 v-model="addLine"
                 class="textarea"
                 rows="2"
-                placeholder="【视频标题】 https://www.bilibili.com/video/… 或 https://youtu.be/…"
+                placeholder="【视频标题】 https://www.bilibili.com/video/…，YouTube 可只粘贴链接"
                 style="resize:vertical;font-size:13px"
               />
               <p v-if="addDuplicate" class="field-hint field-warn">已存在相同视频：「{{ addDuplicate.title }}」</p>
@@ -115,7 +115,12 @@
                 <template v-else-if="addLink.platform !== 'other'"> · 未识别出视频 ID，查重按完整链接</template>
                 <template v-else> · {{ addLink.host }}</template>
               </p>
-              <p v-else class="field-hint">标题 + 空格 + 视频链接，支持 B 站 / YouTube / 其他链接</p>
+              <p v-if="needsLineTitle" class="field-hint field-warn">缺少标题：在链接前面写上视频标题，用空格隔开</p>
+              <p v-if="!addUrl" class="field-hint">标题 + 空格 + 链接；YouTube 链接可只粘贴链接，再单独填写标题</p>
+            </div>
+            <div v-if="isYoutube" class="field" style="margin-top:14px">
+              <label class="field-label">标题 <span class="sv-required">必填</span></label>
+              <input v-model="ytTitle" class="input" maxlength="200" placeholder="填写 YouTube 视频标题" />
             </div>
             <div class="field" style="margin-top:14px">
               <label class="field-label">课程阶段</label>
@@ -175,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { adminSubjectApi } from '@/course/api/admin'
 import { subjectApi } from '@/course/api/course'
@@ -184,7 +189,7 @@ import { useConfirm } from '@/course/composables/useConfirm'
 import type { BilibiliVideo, Subject, VideoLevel } from '@/course/types'
 import LevelPicker from '@/course/components/LevelPicker.vue'
 import { LEVELS } from '@/course/levels'
-import { PLATFORMS, parseVideoLink, shortLink, videoKey } from '@/course/videoLink'
+import { PLATFORMS, parsePaste, parseVideoLink, shortLink, videoKey } from '@/course/videoLink'
 
 const route = useRoute()
 const toast = useToast()
@@ -207,7 +212,14 @@ function splitTags(s: string) {
   return [...new Set(s.split(/[,，、]/).map(t => t.trim()).filter(Boolean))]
 }
 // 粘贴时即时提示重复（后端同样会拦截）
-const addUrl = computed(() => addLine.value.match(/https?:\/\/\S+/)?.[0] ?? '')
+const pasted = computed(() => parsePaste(addLine.value))
+const addUrl = computed(() => pasted.value.url)
+// 标题：B 站 / 其他链接沿用「标题 链接」格式；YouTube 单独填写（必填），粘贴里带了标题就预填
+const isYoutube = computed(() => !!addUrl.value && parseVideoLink(addUrl.value).platform === 'youtube')
+const ytTitle = ref('')
+watch(isYoutube, yt => { if (yt) ytTitle.value = pasted.value.title })
+const addTitle = computed(() => (isYoutube.value ? ytTitle.value : pasted.value.title).trim())
+const needsLineTitle = computed(() => !!addUrl.value && !isYoutube.value && !addTitle.value && !addDuplicate.value)
 const addLink = computed(() => (addUrl.value ? parseVideoLink(addUrl.value) : null))
 const addDuplicate = computed(() => {
   if (!addUrl.value) return null
@@ -267,6 +279,7 @@ function openAdd() {
   addLine.value = ''
   addLevels.value = []
   addTags.value = ''
+  ytTitle.value = ''
   showAddModal.value = true
 }
 
@@ -277,8 +290,13 @@ function openEdit(v: BilibiliVideo) {
 }
 
 async function handleAdd() {
-  const line = addLine.value.trim()
-  if (!line) { toast.warning('请输入内容'); return }
+  if (!addLine.value.trim()) { toast.warning('请粘贴视频链接'); return }
+  if (!addUrl.value) { toast.warning('找不到链接，应包含 http:// 或 https://'); return }
+  if (!addTitle.value) {
+    toast.warning(isYoutube.value ? '请填写 YouTube 视频标题' : '缺少标题：在链接前面写上视频标题，用空格隔开')
+    return
+  }
+  const line = `${addTitle.value} ${addUrl.value}`
   if (addDuplicate.value) { toast.warning(`该视频已存在：「${addDuplicate.value.title}」`); return }
   saving.value = true
   try {
@@ -288,7 +306,7 @@ async function handleAdd() {
     showAddModal.value = false
     toast.success('已添加')
   } catch (e: any) {
-    const msg = e?.response?.data?.detail || '格式错误，应为「标题 https://...」'
+    const msg = e?.response?.data?.detail || '添加失败'
     toast.error(msg)
   } finally {
     saving.value = false
@@ -410,6 +428,7 @@ async function handleDelete(v: BilibiliVideo) {
 }
 .lv-none { --lv: var(--c-warning, #d97706); }
 .sv-tag { font-size: 11px; padding: 1px 7px; border-radius: 99px; color: var(--c-text-2, var(--c-text)); background: color-mix(in srgb, var(--c-text-3) 16%, transparent); }
+.sv-required { font-weight: 400; font-size: 11px; color: var(--c-danger); margin-left: 4px; }
 .sv-optional { font-weight: 400; font-size: 11px; color: var(--c-text-3); margin-left: 4px; }
 .sv-link {
   display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;

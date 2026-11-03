@@ -92,3 +92,16 @@ export function cleanUrl(raw: string) {
   }
   return u.href
 }
+
+/**
+ * 从粘贴的文本里拆出链接和标题，兼容：
+ *   纯链接 / 「标题 链接」/ B 站 App 分享的「【标题】 链接」/ 链接在前、说明在后
+ */
+export function parsePaste(text: string): { url: string; title: string } {
+  const m = text.match(/https?:\/\/[^\s　，。、】」）]+/i)
+  if (!m) return { url: '', title: '' }
+  const url = m[0]
+  const before = text.slice(0, m.index).trim()
+  const after = text.slice(m.index! + url.length).trim()
+  return { url, title: (before || after).replace(/\s+/g, ' ') }
+}

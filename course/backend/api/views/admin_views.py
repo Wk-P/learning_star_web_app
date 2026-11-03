@@ -1,4 +1,5 @@
 import os
+import re
 import secrets
 import string
 
@@ -175,13 +176,13 @@ class AdminSubjectVideosView(APIView):
         line = request.data.get('line', '').strip()
         if not line:
             return Response({'detail': '请提供 line'}, status=status.HTTP_400_BAD_REQUEST)
-        idx = line.find(' http')
-        if idx == -1:
+        m = re.search(r'https?://\S+', line)
+        if not m:
             return Response({'detail': '格式错误，找不到链接（应包含 http）'}, status=status.HTTP_400_BAD_REQUEST)
-        title = line[:idx].strip()
-        url = line[idx:].split()[0]
-        if not title or not url:
-            return Response({'detail': '格式错误，标题或链接为空'}, status=status.HTTP_400_BAD_REQUEST)
+        url = m.group(0)
+        title = line[:m.start()].strip().replace('|', '/')
+        if not title:
+            return Response({'detail': '缺少标题：请在链接前面写上视频标题，用空格隔开'}, status=status.HTTP_400_BAD_REQUEST)
         filepath = _subject_filepath(subject)
         videos = _read_videos(filepath)
         dup = _find_duplicate(videos, url)
