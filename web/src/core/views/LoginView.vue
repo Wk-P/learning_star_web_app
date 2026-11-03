@@ -6,7 +6,7 @@
       <div class="brand">
         <RouterLink to="/" class="brand-link">
           <span class="mark"><AppIcon name="book" :size="15" :stroke="2.2" /></span>
-          <span class="name">{{ BRAND }}</span>
+          <span class="name">{{ BRAND }}<span class="name-cn">{{ BRAND_CN }}</span></span>
         </RouterLink>
         <span class="back-link-top">
           <RouterLink to="/">← 返回首页</RouterLink>
@@ -90,7 +90,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/core/stores/auth'
 import { api } from '@/topik/api'
-import { BRAND } from '@/core/brand'
+import { BRAND, BRAND_CN } from '@/core/brand'
 import AppIcon from '@/core/components/AppIcon.vue'
 
 const route = useRoute()
@@ -173,6 +173,13 @@ async function handleRegister() {
 </script>
 
 <style scoped>
+.name-cn {
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--text-muted, #888);
+}
+
 .login-wrap {
   min-height: 100dvh;
   display: flex;

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/core/stores/auth'
-import { BRAND } from '@/core/brand'
+import { BRAND, BRAND_CN } from '@/core/brand'
 
 const AppShell = () => import('@/core/layouts/AppShell.vue')
 const CourseScope = () => import('@/core/layouts/CourseScope.vue')
@@ -98,7 +98,7 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   const title = to.meta.title as string | undefined
-  document.title = title ? `${title} · ${BRAND}` : BRAND
+  document.title = title ? `${title} · ${BRAND}` : `${BRAND} · ${BRAND_CN}`
 
   const needsAdmin = to.matched.some((r) => r.meta.requiresAdmin)
   const needsAuth = needsAdmin || to.matched.some((r) => r.meta.requiresAuth)

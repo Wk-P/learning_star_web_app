@@ -1,6 +1,6 @@
 <template>
   <footer class="app-footer">
-    <span class="footer-brand">{{ BRAND }}</span>
+    <span class="footer-brand">{{ BRAND }} {{ BRAND_CN }}</span>
     <span class="footer-sep">·</span>
     <span class="footer-tagline">{{ BRAND_TAGLINE }}</span>
     <span class="footer-sep">·</span>
@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { BRAND, BRAND_TAGLINE } from '@/core/brand'
+import { BRAND, BRAND_CN, BRAND_TAGLINE } from '@/core/brand'
 </script>
 
 <style scoped>

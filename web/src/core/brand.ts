@@ -1,5 +1,6 @@
 /** 站点名称与栏目定义（改名只需改这里） */
 export const BRAND = 'Learning Star'
+export const BRAND_CN = '学习之星'
 export const BRAND_TAGLINE = '韩语与课程学习平台'
 
 export type SectionKey = 'topik' | 'course'

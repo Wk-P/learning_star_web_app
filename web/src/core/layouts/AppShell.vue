@@ -7,7 +7,7 @@
           <span class="brand-mark" aria-hidden="true">
             <AppIcon name="book" :size="16" :stroke="2.2" />
           </span>
-          <span class="brand-name">{{ BRAND }}</span>
+          <span class="brand-name">{{ BRAND }}<span class="brand-cn">{{ BRAND_CN }}</span></span>
         </RouterLink>
 
         <nav class="main-nav" aria-label="栏目">
@@ -98,7 +98,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/core/stores/auth'
 import { useThemeStore } from '@/core/stores/theme'
-import { BRAND, SECTIONS, type Section, type SectionKey } from '@/core/brand'
+import { BRAND, BRAND_CN, SECTIONS, type Section, type SectionKey } from '@/core/brand'
 import AppIcon from '@/core/components/AppIcon.vue'
 import AppFooter from '@/core/components/AppFooter.vue'
 
@@ -137,6 +137,13 @@ function logout() {
 </script>
 
 <style scoped>
+.brand-cn {
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--text-muted, #888);
+}
+
 .shell { min-height: 100dvh; display: flex; flex-direction: column; --section: var(--primary); }
 
 /* ── header ────────────────────────────────────────────── */
