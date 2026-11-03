@@ -29,11 +29,10 @@ def parse_levels(raw) -> list[str]:
 
 
 def video_key(url: str) -> str:
-    """查重用：B 站按 BV 号（+分P），其他链接去掉查询参数与协议。"""
+    """查重用：B 站只看 BV 号（同一 BV 的不同分P也算重复），其他链接去掉查询参数与协议。"""
     m = re.search(r'BV[0-9A-Za-z]{10}', url)
     if m:
-        p = re.search(r'[?&]p=(\d+)', url)
-        return f"{m.group(0)}#{p.group(1) if p and p.group(1) != '1' else ''}"
+        return m.group(0)
     return re.sub(r'^https?://', '', url.split('?')[0].split('#')[0]).rstrip('/').lower()
 
 
