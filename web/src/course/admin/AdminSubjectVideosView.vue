@@ -236,7 +236,7 @@ async function handleDelete(v: BilibiliVideo) {
 .video-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .field-hint { font-size: 12px; color: var(--c-text-3); margin-top: 6px; }
 .field-warn { color: var(--c-warning, #d97706); font-weight: 600; }
-.video-levels { display: flex; gap: 6px; margin-bottom: 4px; }
+.video-levels { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .lv-badge {
   font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: var(--r-full);
   color: var(--lv); background: color-mix(in srgb, var(--lv) 14%, transparent);

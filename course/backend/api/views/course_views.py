@@ -47,19 +47,20 @@ def _read_videos(filepath: str) -> list[dict]:
             line = line.strip()
             if not line:
                 continue
-            levels = []
-            head, sep, tail = line.rpartition(' |')
-            if sep and ' http' in head and 'http' not in tail:
-                line, levels = head, parse_levels(tail)
             idx = line.find(' http')
-            if idx != -1:
-                title = line[:idx].strip()
-                url = line[idx:].strip()
-            else:
-                title = line
-                url = ''
-            videos.append({'index': i, 'title': title, 'url': url, 'levels': levels})
+            if idx == -1:
+                videos.append({'index': i, 'title': line, 'url': '', 'levels': []})
+                continue
+            title = line[:idx].strip()
+            # 链接本身不含空格：其后若有「 |等级」即为元数据
+            url, _, meta = line[idx:].strip().partition(' ')
+            lv = re.search(r'\|(.*)$', meta)
+            videos.append({
+                'index': i, 'title': title, 'url': url,
+                'levels': parse_levels(lv.group(1)) if lv else [],
+            })
     return videos
+
 
 class SubjectListView(APIView):
     permission_classes = [IsAuthenticated]

@@ -176,7 +176,7 @@ class AdminSubjectVideosView(APIView):
         if idx == -1:
             return Response({'detail': '格式错误，找不到链接（应包含 http）'}, status=status.HTTP_400_BAD_REQUEST)
         title = line[:idx].strip()
-        url = line[idx:].strip()
+        url = line[idx:].split()[0]
         if not title or not url:
             return Response({'detail': '格式错误，标题或链接为空'}, status=status.HTTP_400_BAD_REQUEST)
         filepath = _subject_filepath(subject)
