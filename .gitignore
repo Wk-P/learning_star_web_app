@@ -9,3 +9,5 @@ staticfiles/
 **/backend/.env.production
 **/backend/.env.develop
 .bot
+# 部署脚本含服务器信息，只留本地
+deploy/deploy.sh
