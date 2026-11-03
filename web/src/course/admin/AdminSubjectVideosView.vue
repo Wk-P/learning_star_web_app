@@ -29,10 +29,7 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
         <input v-model="keyword" type="search" placeholder="搜索标题、标签或 BV 号" aria-label="搜索视频" />
       </label>
-      <select v-if="allTags.length" v-model="tag" class="sv-tag-select" :class="{ on: tag }" aria-label="按标签筛选">
-        <option value="">全部标签</option>
-        <option v-for="t in allTags" :key="t" :value="t">#{{ t }}</option>
-      </select>
+      <TagSelect v-if="allTags.length" v-model="tag" :options="tagOptions" :total="videos.length" size="sm" />
       <div class="sv-seg" role="tablist" aria-label="按阶段筛选">
         <button
           v-for="o in stageOptions"
@@ -188,6 +185,7 @@ import { useToast } from '@/course/composables/useToast'
 import { useConfirm } from '@/course/composables/useConfirm'
 import type { BilibiliVideo, Subject, VideoLevel } from '@/course/types'
 import LevelPicker from '@/course/components/LevelPicker.vue'
+import TagSelect from '@/course/components/TagSelect.vue'
 import { LEVELS } from '@/course/levels'
 import { PLATFORMS, parsePaste, parseVideoLink, shortLink, videoKey } from '@/course/videoLink'
 
@@ -233,6 +231,7 @@ const keyword = ref('')
 const stage = ref<StageKey>('all')
 const tag = ref('')
 const allTags = computed(() => [...new Set(videos.value.flatMap(v => v.tags ?? []))])
+const tagOptions = computed(() => allTags.value.map(t => ({ value: t, count: videos.value.filter(v => (v.tags ?? []).includes(t)).length })))
 
 // 显示序号按文件中的顺序，不随筛选变化
 const order = computed(() => Object.fromEntries(videos.value.map((v, i) => [v.index, i])) as Record<number, number>)
@@ -369,13 +368,6 @@ async function handleDelete(v: BilibiliVideo) {
 
 /* ── 筛选栏 ───────────────────────────────────────────── */
 .sv-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.sv-tag-select {
-  flex: 0 0 auto; max-width: 180px; height: 36px; padding: 0 10px;
-  border: none; border-radius: var(--r); font-size: 13px;
-  color: var(--c-text-2, var(--c-text)); background: var(--c-surface);
-  box-shadow: inset 0 0 0 1px var(--c-border); cursor: pointer;
-}
-.sv-tag-select.on { color: var(--c-text); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .sv-search {
   flex: 1 1 240px; min-width: 0; max-width: 360px;
   display: flex; align-items: center; gap: 8px;

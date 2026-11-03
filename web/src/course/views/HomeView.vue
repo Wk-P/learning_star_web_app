@@ -62,10 +62,7 @@
               <input v-model="keyword" type="search" placeholder="搜索本科目的视频…" aria-label="搜索视频" />
               <kbd v-if="!keyword" class="hub-kbd">/</kbd>
             </label>
-            <select v-if="allTags.length" v-model="tag" class="hub-tag-select" :class="{ on: tag }" aria-label="按标签筛选">
-              <option value="">全部标签</option>
-              <option v-for="t in allTags" :key="t" :value="t">#{{ t }}</option>
-            </select>
+            <TagSelect v-if="allTags.length" v-model="tag" :options="tagOptions" :total="videos.length" size="md" />
             <div class="hub-stage-track" role="tablist" aria-label="按阶段筛选">
               <span class="hub-stage-thumb" :style="thumbStyle" aria-hidden="true" />
               <button
@@ -159,6 +156,7 @@ import { subjectApi } from '@/course/api/course'
 import { useToast } from '@/course/composables/useToast'
 import type { Subject, BilibiliVideo, VideoLevel } from '@/course/types'
 import { LEVELS } from '@/course/levels'
+import TagSelect from '@/course/components/TagSelect.vue'
 import { PLATFORMS, cleanUrl, parseVideoLink, shortLink } from '@/course/videoLink'
 
 function useEventListener<K extends keyof WindowEventMap>(t: Window, type: K, fn: (e: WindowEventMap[K]) => void) {
@@ -200,6 +198,7 @@ const tag = ref('')
 
 // 本科目出现过的所有标签（按首次出现顺序）
 const allTags = computed(() => [...new Set(videos.value.flatMap(v => v.tags ?? []))])
+const tagOptions = computed(() => allTags.value.map(t => ({ value: t, count: videos.value.filter(v => (v.tags ?? []).includes(t)).length })))
 
 const searched = computed(() => {
   const k = keyword.value.trim().toLowerCase()
@@ -458,13 +457,6 @@ onMounted(async () => {
   border: 1px solid var(--c-border); border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
 }
-.hub-tag-select {
-  flex: 0 0 auto; max-width: 180px; height: 38px; padding: 0 10px;
-  border: none; border-radius: var(--r); font-size: 13px;
-  color: var(--c-text-2, var(--c-text)); background: var(--c-bg, transparent);
-  box-shadow: inset 0 0 0 1px var(--c-border); cursor: pointer;
-}
-.hub-tag-select.on { color: var(--c-text); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .hub-search {
   flex: 1 1 220px; min-width: 0;
   display: flex; align-items: center; gap: 8px;
