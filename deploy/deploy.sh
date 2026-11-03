@@ -2,14 +2,15 @@
 # 部署到上海节点（sshgo 中的 shanghai_node）
 #   ./deploy/deploy.sh web      构建并部署前端（web/）
 #   ./deploy/deploy.sh topik    部署 topik 后端（账号/登录、韩语资源）
-#   ./deploy/deploy.sh course   部署 course 后端；若本地有 pull-data 拉下的 B 站链接数据，一并推送
+#   ./deploy/deploy.sh course   部署 course 后端（只有代码，不碰数据）
 #   ./deploy/deploy.sh pull-data 把服务器上的 B 站链接数据拉到本地（course/backend/bilibili/）
+#   ./deploy/deploy.sh push-data 把本地改好的 B 站链接数据推回服务器（需先 pull-data）
 #   ./deploy/deploy.sh nginx    安装 80 端口统一入口 + systemd 单元（首次/变更时）
 #   ./deploy/deploy.sh users    预览 course 账号并入 topik；加 --apply 真正写入
 #   ./deploy/deploy.sh all      topik → course → web → nginx
 #
-# 永不覆盖服务器上的：media/、db.sqlite3、.env*、staticfiles/
-# course 的 bilibili/ 数据只在「pull-data 之后服务器未被改动」时才推送，避免覆盖后台的新编辑
+# 代码部署永不覆盖服务器上的数据：media/、db.sqlite3、.env*、staticfiles/、course 的 bilibili/
+# bilibili/ 只能用 pull-data / push-data 单独同步；push-data 会在服务器自 pull-data 后被改过时中止
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -73,7 +74,7 @@ pull_data() {
 
 push_data() {
   if [ ! -f "$BILI_SNAPSHOT" ]; then
-    echo "跳过 B 站链接数据：本地没有 pull-data 快照"; return
+    echo "本地没有 pull-data 快照，请先 ./deploy/deploy.sh pull-data" >&2; exit 1
   fi
   if [ "$(remote_bili_hash)" != "$(cat "$BILI_SNAPSHOT")" ]; then
     echo "服务器上的 B 站链接数据在 pull-data 之后被改过（后台编辑？），为避免覆盖已中止推送。" >&2
@@ -89,7 +90,6 @@ push_data() {
 deploy_course() {
   sync "${BACKEND_EXCLUDES[@]}" --exclude 'bilibili/' "$ROOT/course/backend/" "$SSH_HOST:$COURSE_DIR/backend/"
   sync "$ROOT/course/pyproject.toml" "$ROOT/course/uv.lock" "$SSH_HOST:$COURSE_DIR/"
-  push_data
   ssh_run "set -e; cd $COURSE_DIR
     test -f .env || { echo '缺少 $COURSE_DIR/.env，模板见 deploy/env/course.env.example' >&2; exit 1; }
     /snap/bin/uv sync --frozen --no-dev -q
@@ -123,10 +123,11 @@ case "${1:-}" in
   topik)  deploy_topik ;;
   course) deploy_course ;;
   pull-data) pull_data ;;
+  push-data) push_data ;;
   nginx)  check_jwt_key; deploy_nginx ;;
   users)  shift; import_users "$@" ;;
   # nginx 步骤会更新 systemd 单元（含 EnvironmentFile），之后再重启一次两个后端使其生效
   all)    check_jwt_key; deploy_topik; deploy_course; deploy_web; deploy_nginx
           ssh_run "sudo systemctl restart player3 course-backend && systemctl is-active player3 course-backend" ;;
-  *) sed -n '2,12p' "$0"; exit 1 ;;
+  *) sed -n '2,13p' "$0"; exit 1 ;;
 esac
