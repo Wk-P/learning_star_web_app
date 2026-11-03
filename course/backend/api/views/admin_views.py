@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from ..models import Subject
 from ..permissions import IsAdmin
 from ..serializers import SubjectSerializer, AdminUserSerializer, AdminUserCreateSerializer
-from .course_views import _subject_filepath, _read_videos, parse_levels, parse_tags, video_key
+from .course_views import _subject_filepath, _read_videos, parse_levels, parse_tags, video_key, with_platform_tag
 
 User = get_user_model()
 
@@ -190,7 +190,7 @@ class AdminSubjectVideosView(APIView):
         levels = parse_levels(request.data.get('levels'))
         if len(levels) > 1:
             return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
-        tags = parse_tags(request.data.get('tags'))
+        tags = with_platform_tag(url, parse_tags(request.data.get('tags')))
         videos.append({'title': title, 'url': url, 'levels': levels, 'tags': tags})
         _write_videos(filepath, videos)
         return Response({'index': len(videos) - 1, 'title': title, 'url': url, 'levels': levels, 'tags': tags}, status=status.HTTP_201_CREATED)
@@ -202,7 +202,7 @@ class AdminSubjectVideosView(APIView):
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
         if not isinstance(request.data, list):
             return Response({'detail': '请提供列表数据'}, status=status.HTTP_400_BAD_REQUEST)
-        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels')), 'tags': parse_tags(v.get('tags'))}
+        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels')), 'tags': with_platform_tag(v.get('url', '').strip(), parse_tags(v.get('tags')))}
                   for v in request.data]
         if any(len(v['levels']) > 1 for v in videos):
             return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
@@ -251,6 +251,9 @@ class AdminSubjectVideoDetailView(APIView):
             videos[real_index]['levels'] = levels
         if 'tags' in request.data:
             videos[real_index]['tags'] = parse_tags(request.data['tags'])
+        # 链接改了平台也要跟着变：先去掉旧平台标签，再按新链接补上
+        videos[real_index]['tags'] = with_platform_tag(
+            videos[real_index]['url'], [t for t in videos[real_index].get('tags', []) if t not in ('B站', 'YouTube')])
         _write_videos(filepath, videos)
         return Response({'index': real_index, **{k: v for k, v in videos[real_index].items() if k != 'index'}})
 

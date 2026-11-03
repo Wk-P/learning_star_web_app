@@ -40,6 +40,24 @@ def parse_tags(raw) -> list[str]:
     return tags
 
 
+# 按链接域名自动识别平台，打上对应标签
+PLATFORM_TAGS = (
+    ('B站', re.compile(r'(^|\.)(bilibili\.com|b23\.tv|bili2233\.cn)$')),
+    ('YouTube', re.compile(r'(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$')),
+)
+
+
+def platform_tag(url: str) -> str | None:
+    host = re.sub(r'^https?://', '', url.strip(), flags=re.I).split('/')[0].split('?')[0].split(':')[0].lower()
+    return next((tag for tag, pat in PLATFORM_TAGS if pat.search(host)), None)
+
+
+def with_platform_tag(url: str, tags: list[str]) -> list[str]:
+    """平台标签放在最前；已有则不重复。"""
+    t = platform_tag(url)
+    return [t, *[x for x in tags if x != t]] if t else tags
+
+
 def video_key(url: str) -> str:
     """查重用：B 站只看 BV 号（同一 BV 的不同分P也算重复），其他链接去掉查询参数与协议。"""
     m = re.search(r'BV[0-9A-Za-z]{10}', url)
@@ -70,7 +88,7 @@ def _read_videos(filepath: str) -> list[dict]:
             videos.append({
                 'index': i, 'title': title, 'url': url,
                 'levels': parse_levels(parts[0]) if parts else [],
-                'tags': parse_tags(parts[1]) if len(parts) > 1 else [],
+                'tags': with_platform_tag(url, parse_tags(parts[1]) if len(parts) > 1 else []),
             })
     return videos
 
