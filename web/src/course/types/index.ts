@@ -26,6 +26,8 @@ export interface BilibiliVideo {
   title: string
   url: string
   levels: VideoLevel[]
+  /** 自定义标签，可为空 */
+  tags: string[]
 }
 
 export interface TokenPair {

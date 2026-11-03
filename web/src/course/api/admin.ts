@@ -10,11 +10,11 @@ export const adminSubjectApi = {
   delete: (id: number) => http.delete(`/admin/subjects/${id}/`),
   listVideos: (subjectId: number) =>
     http.get<BilibiliVideo[]>(`/admin/subjects/${subjectId}/videos/`),
-  addVideo: (subjectId: number, data: { line: string; levels: VideoLevel[] }) =>
+  addVideo: (subjectId: number, data: { line: string; levels: VideoLevel[]; tags: string[] }) =>
     http.post<BilibiliVideo>(`/admin/subjects/${subjectId}/videos/`, data),
-  replaceVideos: (subjectId: number, videos: { title: string; url: string; levels: VideoLevel[] }[]) =>
+  replaceVideos: (subjectId: number, videos: { title: string; url: string; levels: VideoLevel[]; tags: string[] }[]) =>
     http.put<BilibiliVideo[]>(`/admin/subjects/${subjectId}/videos/`, videos),
-  updateVideo: (subjectId: number, index: number, data: Partial<{ title: string; url: string; levels: VideoLevel[] }>) =>
+  updateVideo: (subjectId: number, index: number, data: Partial<{ title: string; url: string; levels: VideoLevel[]; tags: string[] }>) =>
     http.patch(`/admin/subjects/${subjectId}/videos/${index}/`, data),
   deleteVideo: (subjectId: number, index: number) =>
     http.delete(`/admin/subjects/${subjectId}/videos/${index}/`),

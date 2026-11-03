@@ -27,7 +27,7 @@
     <div v-if="!loading && videos.length" class="sv-bar">
       <label class="sv-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-        <input v-model="keyword" type="search" placeholder="搜索标题或 BV 号" aria-label="搜索视频" />
+        <input v-model="keyword" type="search" placeholder="搜索标题、标签或 BV 号" aria-label="搜索视频" />
       </label>
       <div class="sv-seg" role="tablist" aria-label="按阶段筛选">
         <button
@@ -68,6 +68,7 @@
           <div class="sv-meta">
             <span v-for="l in LEVELS.filter(x => v.levels.includes(x.key))" :key="l.key" class="lv-badge" :style="{ '--lv': l.color }">{{ l.key }}</span>
             <span v-if="!v.levels.length" class="lv-badge lv-none">未分级</span>
+            <span v-for="t in v.tags" :key="t" class="sv-tag">#{{ t }}</span>
             <a :href="v.url" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="sv-link" :title="v.url">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
               {{ shortUrl(v.url) }}
@@ -110,6 +111,10 @@
               <label class="field-label">课程阶段</label>
               <LevelPicker v-model="addLevels" />
             </div>
+            <div class="field" style="margin-top:14px">
+              <label class="field-label">标签 <span class="sv-optional">可选</span></label>
+              <input v-model="addTags" class="input" maxlength="120" placeholder="逗号分隔，如：考研, 王道, 速成" />
+            </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" @click="showAddModal = false">取消</button>
@@ -139,6 +144,10 @@
             <div class="field">
               <label class="field-label">课程阶段</label>
               <LevelPicker v-model="editForm.levels" />
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label class="field-label">标签 <span class="sv-optional">可选</span></label>
+              <input v-model="editForm.tags" class="input" maxlength="120" placeholder="逗号分隔，如：考研, 王道, 速成" />
             </div>
           </div>
           <div class="modal-footer">
@@ -176,6 +185,12 @@ const saving = ref(false)
 const showAddModal = ref(false)
 const addLine = ref('')
 const addLevels = ref<VideoLevel[]>([])
+const addTags = ref('')
+
+// 「a, b，c」→ ['a','b','c']；留空即无标签
+function splitTags(s: string) {
+  return [...new Set(s.split(/[,，、]/).map(t => t.trim()).filter(Boolean))]
+}
 // 粘贴时即时提示重复（后端同样会拦截）
 const addDuplicate = computed(() => {
   const m = addLine.value.match(/https?:\/\/\S+/)
@@ -195,7 +210,7 @@ const unleveled = computed(() => videos.value.filter(v => !v.levels.length).leng
 
 const searched = computed(() => {
   const k = keyword.value.trim().toLowerCase()
-  return k ? videos.value.filter(v => v.title.toLowerCase().includes(k) || v.url.toLowerCase().includes(k)) : videos.value
+  return k ? videos.value.filter(v => v.title.toLowerCase().includes(k) || (v.tags ?? []).some(t => t.toLowerCase().includes(k)) || v.url.toLowerCase().includes(k)) : videos.value
 })
 function inStage(v: BilibiliVideo, key: StageKey) {
   return key === 'all' || (key === 'none' ? !v.levels.length : v.levels.includes(key))
@@ -222,7 +237,7 @@ function shortUrl(url: string) {
 // 编辑弹窗
 const showEditModal = ref(false)
 const editTarget = ref<BilibiliVideo | null>(null)
-const editForm = ref<{ title: string; url: string; levels: VideoLevel[] }>({ title: '', url: '', levels: [] })
+const editForm = ref<{ title: string; url: string; levels: VideoLevel[]; tags: string }>({ title: '', url: '', levels: [], tags: '' })
 
 onMounted(async () => {
   loading.value = true
@@ -241,12 +256,13 @@ onMounted(async () => {
 function openAdd() {
   addLine.value = ''
   addLevels.value = []
+  addTags.value = ''
   showAddModal.value = true
 }
 
 function openEdit(v: BilibiliVideo) {
   editTarget.value = v
-  editForm.value = { title: v.title, url: v.url, levels: [...v.levels] }
+  editForm.value = { title: v.title, url: v.url, levels: [...v.levels], tags: (v.tags ?? []).join(', ') }
   showEditModal.value = true
 }
 
@@ -256,7 +272,7 @@ async function handleAdd() {
   if (addDuplicate.value) { toast.warning(`该视频已存在：「${addDuplicate.value.title}」`); return }
   saving.value = true
   try {
-    await adminSubjectApi.addVideo(subjectId, { line, levels: addLevels.value })
+    await adminSubjectApi.addVideo(subjectId, { line, levels: addLevels.value, tags: splitTags(addTags.value) })
     const { data } = await adminSubjectApi.listVideos(subjectId)
     videos.value = data
     showAddModal.value = false
@@ -276,7 +292,7 @@ async function handleEditSave() {
   }
   saving.value = true
   try {
-    await adminSubjectApi.updateVideo(subjectId, editTarget.value!.index, editForm.value)
+    await adminSubjectApi.updateVideo(subjectId, editTarget.value!.index, { ...editForm.value, tags: splitTags(editForm.value.tags) })
     const { data } = await adminSubjectApi.listVideos(subjectId)
     videos.value = data
     showEditModal.value = false
@@ -376,6 +392,8 @@ async function handleDelete(v: BilibiliVideo) {
   color: var(--lv); background: color-mix(in srgb, var(--lv) 14%, transparent);
 }
 .lv-none { --lv: var(--c-warning, #d97706); }
+.sv-tag { font-size: 11px; padding: 1px 7px; border-radius: 99px; color: var(--c-text-2, var(--c-text)); background: color-mix(in srgb, var(--c-text-3) 16%, transparent); }
+.sv-optional { font-weight: 400; font-size: 11px; color: var(--c-text-3); margin-left: 4px; }
 .sv-link {
   display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;
   font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;

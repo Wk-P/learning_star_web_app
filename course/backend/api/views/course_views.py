@@ -28,6 +28,18 @@ def parse_levels(raw) -> list[str]:
     return [lv for lv in LEVELS if lv in picked]
 
 
+def parse_tags(raw) -> list[str]:
+    """自定义标签：列表或逗号分隔字符串，去空、去重、保持顺序；| 与逗号是文件分隔符，不允许出现在标签里。"""
+    if isinstance(raw, str):
+        raw = re.split(r'[,，、]', raw)
+    tags = []
+    for x in raw or []:
+        t = str(x).replace('|', '').replace(',', '').replace('，', '').strip()[:20]
+        if t and t not in tags:
+            tags.append(t)
+    return tags
+
+
 def video_key(url: str) -> str:
     """查重用：B 站只看 BV 号（同一 BV 的不同分P也算重复），其他链接去掉查询参数与协议。"""
     m = re.search(r'BV[0-9A-Za-z]{10}', url)
@@ -37,7 +49,7 @@ def video_key(url: str) -> str:
 
 
 def _read_videos(filepath: str) -> list[dict]:
-    """每行：「标题 https://... |入门,基础」，等级后缀可省略。"""
+    """每行：「标题 https://... |入门 |标签1,标签2」，等级与标签后缀均可省略。"""
     if not os.path.exists(filepath):
         return []
     videos = []
@@ -48,15 +60,17 @@ def _read_videos(filepath: str) -> list[dict]:
                 continue
             idx = line.find(' http')
             if idx == -1:
-                videos.append({'index': i, 'title': line, 'url': '', 'levels': []})
+                videos.append({'index': i, 'title': line, 'url': '', 'levels': [], 'tags': []})
                 continue
             title = line[:idx].strip()
             # 链接本身不含空格：其后若有「 |等级」即为元数据
             url, _, meta = line[idx:].strip().partition(' ')
-            lv = re.search(r'\|(.*)$', meta)
+            # meta 形如「|入门 |标签1,标签2」：第一段为等级，第二段为标签
+            parts = meta.split('|')[1:]
             videos.append({
                 'index': i, 'title': title, 'url': url,
-                'levels': parse_levels(lv.group(1)) if lv else [],
+                'levels': parse_levels(parts[0]) if parts else [],
+                'tags': parse_tags(parts[1]) if len(parts) > 1 else [],
             })
     return videos
 

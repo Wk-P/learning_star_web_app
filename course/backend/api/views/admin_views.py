@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from ..models import Subject
 from ..permissions import IsAdmin
 from ..serializers import SubjectSerializer, AdminUserSerializer, AdminUserCreateSerializer
-from .course_views import _subject_filepath, _read_videos, parse_levels, video_key
+from .course_views import _subject_filepath, _read_videos, parse_levels, parse_tags, video_key
 
 User = get_user_model()
 
@@ -28,7 +28,10 @@ def _write_videos(filepath: str, videos: list[dict]) -> None:
     with open(filepath, 'w', encoding='utf-8') as f:
         for v in videos:
             levels = v.get('levels') or []
-            suffix = f" |{','.join(levels)}" if levels else ''
+            tags = v.get('tags') or []
+            suffix = f" |{','.join(levels)}" if levels or tags else ''
+            if tags:
+                suffix += f" |{','.join(tags)}"
             f.write(f"{v['title']} {v['url']}{suffix}\n")
 
 
@@ -187,9 +190,10 @@ class AdminSubjectVideosView(APIView):
         levels = parse_levels(request.data.get('levels'))
         if len(levels) > 1:
             return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
-        videos.append({'title': title, 'url': url, 'levels': levels})
+        tags = parse_tags(request.data.get('tags'))
+        videos.append({'title': title, 'url': url, 'levels': levels, 'tags': tags})
         _write_videos(filepath, videos)
-        return Response({'index': len(videos) - 1, 'title': title, 'url': url, 'levels': levels}, status=status.HTTP_201_CREATED)
+        return Response({'index': len(videos) - 1, 'title': title, 'url': url, 'levels': levels, 'tags': tags}, status=status.HTTP_201_CREATED)
 
     def put(self, request, subject_id):
         """整体替换视频列表。body: [{title, url}, ...]"""
@@ -198,7 +202,7 @@ class AdminSubjectVideosView(APIView):
             return Response({'detail': '科目不存在'}, status=status.HTTP_404_NOT_FOUND)
         if not isinstance(request.data, list):
             return Response({'detail': '请提供列表数据'}, status=status.HTTP_400_BAD_REQUEST)
-        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels'))}
+        videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels')), 'tags': parse_tags(v.get('tags'))}
                   for v in request.data]
         if any(len(v['levels']) > 1 for v in videos):
             return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
@@ -245,6 +249,8 @@ class AdminSubjectVideoDetailView(APIView):
             if len(levels) > 1:
                 return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
             videos[real_index]['levels'] = levels
+        if 'tags' in request.data:
+            videos[real_index]['tags'] = parse_tags(request.data['tags'])
         _write_videos(filepath, videos)
         return Response({'index': real_index, **{k: v for k, v in videos[real_index].items() if k != 'index'}})
 
