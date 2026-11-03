@@ -12,6 +12,7 @@
   --c-bg:            transparent;
   --c-surface:       rgba(255, 255, 255, 0.04);
   --c-surface-glass: rgba(10, 20, 42, 0.82);
+  --c-popover:       #13234a; /* 下拉浮层等需不透明的表面，与弹窗同色 */
   --c-border:        rgba(255, 255, 255, 0.08);
   --c-border-hover:  rgba(255, 255, 255, 0.16);
 

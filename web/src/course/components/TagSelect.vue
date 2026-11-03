@@ -161,7 +161,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer))
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
   min-width: 100%; width: max-content; max-width: 260px; max-height: 280px;
   margin: 0; padding: 5px; list-style: none; overflow-y: auto;
-  background: var(--c-surface);
+  /* 深色主题的 --c-surface 是半透明的，浮层必须不透明 */
+  background: var(--c-popover, var(--c-surface));
   border: 1px solid var(--c-border); border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.18));
   outline: none;
