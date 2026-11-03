@@ -68,7 +68,7 @@ pull_data() {
   mkdir -p "$BILI_DIR"
   sync --include '*.txt' --exclude '*' "$SSH_HOST:$COURSE_DIR/backend/bilibili/" "$BILI_DIR/"
   remote_bili_hash > "$BILI_SNAPSHOT"
-  echo "已拉取服务器数据到 $BILI_DIR，修改后用 ./deploy/deploy.sh course 推送"
+  echo "已拉取服务器数据到 ${BILI_DIR}，修改后用 ./deploy/deploy.sh course 推送"
 }
 
 push_data() {
