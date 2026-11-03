@@ -2,12 +2,14 @@
 # 部署到上海节点（sshgo 中的 shanghai_node）
 #   ./deploy/deploy.sh web      构建并部署前端（web/）
 #   ./deploy/deploy.sh topik    部署 topik 后端（账号/登录、韩语资源）
-#   ./deploy/deploy.sh course   部署 course 后端（科目、B 站链接、路线图）
+#   ./deploy/deploy.sh course   部署 course 后端；若本地有 pull-data 拉下的 B 站链接数据，一并推送
+#   ./deploy/deploy.sh pull-data 把服务器上的 B 站链接数据拉到本地（course/backend/bilibili/）
 #   ./deploy/deploy.sh nginx    安装 80 端口统一入口 + systemd 单元（首次/变更时）
 #   ./deploy/deploy.sh users    预览 course 账号并入 topik；加 --apply 真正写入
 #   ./deploy/deploy.sh all      topik → course → web → nginx
 #
-# 永不覆盖服务器上的：media/、db.sqlite3、.env*、staticfiles/、course 的 bilibili/ 数据
+# 永不覆盖服务器上的：media/、db.sqlite3、.env*、staticfiles/
+# course 的 bilibili/ 数据只在「pull-data 之后服务器未被改动」时才推送，避免覆盖后台的新编辑
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -54,9 +56,40 @@ deploy_topik() {
     sudo systemctl restart player3 && systemctl is-active player3"
 }
 
+BILI_DIR="$ROOT/course/backend/bilibili"
+BILI_SNAPSHOT="$BILI_DIR/.remote-snapshot"
+
+# 服务器上 bilibili/*.txt 的整体指纹
+remote_bili_hash() {
+  ssh_run "cd $COURSE_DIR/backend/bilibili && find . -maxdepth 1 -name '*.txt' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1"
+}
+
+pull_data() {
+  mkdir -p "$BILI_DIR"
+  sync --include '*.txt' --exclude '*' "$SSH_HOST:$COURSE_DIR/backend/bilibili/" "$BILI_DIR/"
+  remote_bili_hash > "$BILI_SNAPSHOT"
+  echo "已拉取服务器数据到 $BILI_DIR，修改后用 ./deploy/deploy.sh course 推送"
+}
+
+push_data() {
+  if [ ! -f "$BILI_SNAPSHOT" ]; then
+    echo "跳过 B 站链接数据：本地没有 pull-data 快照"; return
+  fi
+  if [ "$(remote_bili_hash)" != "$(cat "$BILI_SNAPSHOT")" ]; then
+    echo "服务器上的 B 站链接数据在 pull-data 之后被改过（后台编辑？），为避免覆盖已中止推送。" >&2
+    echo "请先 ./deploy/deploy.sh pull-data 重新拉取，再在本地修改。" >&2
+    exit 1
+  fi
+  ssh_run "cp -a $COURSE_DIR/backend/bilibili $COURSE_DIR/backend/bilibili.bak-\$(date +%Y%m%d%H%M%S)"
+  sync --include '*.txt' --exclude '*' "$BILI_DIR/" "$SSH_HOST:$COURSE_DIR/backend/bilibili/"
+  remote_bili_hash > "$BILI_SNAPSHOT"
+  echo "B 站链接数据已推送（服务器旧数据已备份为 bilibili.bak-*）"
+}
+
 deploy_course() {
   sync "${BACKEND_EXCLUDES[@]}" --exclude 'bilibili/' "$ROOT/course/backend/" "$SSH_HOST:$COURSE_DIR/backend/"
   sync "$ROOT/course/pyproject.toml" "$ROOT/course/uv.lock" "$SSH_HOST:$COURSE_DIR/"
+  push_data
   ssh_run "set -e; cd $COURSE_DIR
     test -f .env || { echo '缺少 $COURSE_DIR/.env，模板见 deploy/env/course.env.example' >&2; exit 1; }
     /snap/bin/uv sync --frozen --no-dev -q
@@ -89,10 +122,11 @@ case "${1:-}" in
   web)    deploy_web ;;
   topik)  deploy_topik ;;
   course) deploy_course ;;
+  pull-data) pull_data ;;
   nginx)  check_jwt_key; deploy_nginx ;;
   users)  shift; import_users "$@" ;;
   # nginx 步骤会更新 systemd 单元（含 EnvironmentFile），之后再重启一次两个后端使其生效
   all)    check_jwt_key; deploy_topik; deploy_course; deploy_web; deploy_nginx
           ssh_run "sudo systemctl restart player3 course-backend && systemctl is-active player3 course-backend" ;;
-  *) sed -n '2,10p' "$0"; exit 1 ;;
+  *) sed -n '2,12p' "$0"; exit 1 ;;
 esac
