@@ -159,7 +159,7 @@ const loadingVideos = ref(false)
 const cache = reactive<Record<number, BilibiliVideo[]>>({})
 const videos = computed(() => (activeId.value != null ? cache[activeId.value] : undefined) ?? [])
 
-// ── 筛选：关键词 + 阶段（入门/基础/进阶，一个视频可出现在多个阶段） ──
+// ── 筛选：关键词 + 阶段（入门/基础/进阶，每个视频只属于一个阶段） ──
 const UNLEVELED = '未分级'
 type StageKey = 'all' | VideoLevel | typeof UNLEVELED
 

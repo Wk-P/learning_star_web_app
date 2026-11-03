@@ -107,7 +107,7 @@
               <p v-else class="field-hint">与 txt 文件格式一致：标题 + 空格 + 链接</p>
             </div>
             <div class="field" style="margin-top:14px">
-              <label class="field-label">课程阶段（可多选）</label>
+              <label class="field-label">课程阶段</label>
               <LevelPicker v-model="addLevels" />
             </div>
           </div>
@@ -137,7 +137,7 @@
               <input v-model="editForm.url" class="input" placeholder="https://www.bilibili.com/video/..." />
             </div>
             <div class="field">
-              <label class="field-label">课程阶段（可多选）</label>
+              <label class="field-label">课程阶段</label>
               <LevelPicker v-model="editForm.levels" />
             </div>
           </div>

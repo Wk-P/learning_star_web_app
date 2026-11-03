@@ -1,12 +1,13 @@
 <template>
-  <div class="lv-picker" role="group" aria-label="课程阶段">
+  <div class="lv-picker" role="radiogroup" aria-label="课程阶段">
     <button
       v-for="l in LEVELS"
       :key="l.key"
       type="button"
       :class="['lv-opt', { on: modelValue.includes(l.key) }]"
       :style="{ '--lv': l.color }"
-      :aria-pressed="modelValue.includes(l.key)"
+      role="radio"
+      :aria-checked="modelValue.includes(l.key)"
       @click="toggle(l.key)"
     >
       <span class="lv-step">{{ l.step }}</span>
@@ -26,10 +27,9 @@ import type { VideoLevel } from '@/course/types'
 const props = defineProps<{ modelValue: VideoLevel[] }>()
 const emit = defineEmits<{ 'update:modelValue': [VideoLevel[]] }>()
 
+// 单选：点已选中的阶段可取消（变为未分级）
 function toggle(k: VideoLevel) {
-  const set = new Set(props.modelValue)
-  set.has(k) ? set.delete(k) : set.add(k)
-  emit('update:modelValue', LEVELS.map(l => l.key).filter(x => set.has(x)))
+  emit('update:modelValue', props.modelValue.includes(k) ? [] : [k])
 }
 </script>
 

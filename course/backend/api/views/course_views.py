@@ -21,7 +21,7 @@ LEVELS = ('入门', '基础', '进阶')
 
 
 def parse_levels(raw) -> list[str]:
-    """接受列表或逗号分隔字符串，只保留合法等级并按 入门→基础→进阶 排序。"""
+    """接受列表或逗号分隔字符串，只保留合法等级并按 入门→基础→进阶 排序。每个视频只允许一个阶段，写入时由 admin 校验。"""
     if isinstance(raw, str):
         raw = raw.replace('，', ',').split(',')
     picked = {str(x).strip() for x in (raw or [])}

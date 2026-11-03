@@ -185,6 +185,8 @@ class AdminSubjectVideosView(APIView):
         if dup:
             return Response({'detail': f'该视频已存在：「{dup["title"]}」'}, status=status.HTTP_409_CONFLICT)
         levels = parse_levels(request.data.get('levels'))
+        if len(levels) > 1:
+            return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
         videos.append({'title': title, 'url': url, 'levels': levels})
         _write_videos(filepath, videos)
         return Response({'index': len(videos) - 1, 'title': title, 'url': url, 'levels': levels}, status=status.HTTP_201_CREATED)
@@ -198,6 +200,8 @@ class AdminSubjectVideosView(APIView):
             return Response({'detail': '请提供列表数据'}, status=status.HTTP_400_BAD_REQUEST)
         videos = [{'title': v.get('title', '').strip(), 'url': v.get('url', '').strip(), 'levels': parse_levels(v.get('levels'))}
                   for v in request.data]
+        if any(len(v['levels']) > 1 for v in videos):
+            return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
         seen = set()
         for v in videos:
             key = video_key(v['url'])
@@ -237,7 +241,10 @@ class AdminSubjectVideoDetailView(APIView):
                 return Response({'detail': f'该视频已存在：「{dup["title"]}」'}, status=status.HTTP_409_CONFLICT)
             videos[real_index]['url'] = url
         if 'levels' in request.data:
-            videos[real_index]['levels'] = parse_levels(request.data['levels'])
+            levels = parse_levels(request.data['levels'])
+            if len(levels) > 1:
+                return Response({'detail': '每个视频只能选择一个阶段'}, status=status.HTTP_400_BAD_REQUEST)
+            videos[real_index]['levels'] = levels
         _write_videos(filepath, videos)
         return Response({'index': real_index, **{k: v for k, v in videos[real_index].items() if k != 'index'}})
 
