@@ -37,6 +37,7 @@ class Subject(models.Model):
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=10, blank=True, default='📖')
     color = models.CharField(max_length=7, blank=True, default='#6366f1')
+    keywords = models.CharField(max_length=200, blank=True, default='')  # B 站搜索关键词，逗号分隔
 
     def __str__(self):
         return self.name

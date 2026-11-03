@@ -34,6 +34,20 @@
             <div class="hub-hero-text">
               <h1 class="hub-hero-title">{{ active.name }}</h1>
               <p class="hub-hero-desc">{{ active.description || '精选 B 站课程合集' }}</p>
+              <div v-if="keywords.length" class="hub-kw" aria-label="B 站搜索关键词">
+                <span class="hub-kw-label">B 站搜索</span>
+                <button
+                  v-for="k in keywords"
+                  :key="k"
+                  type="button"
+                  class="hub-kw-chip"
+                  :title="`复制「${k}」`"
+                  @click="copyKeyword(k)"
+                >
+                  {{ k }}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a1 1 0 0 1 1-1h10" /></svg>
+                </button>
+              </div>
             </div>
             <div class="hub-hero-stat">
               <strong>{{ videos.length }}</strong>
@@ -153,6 +167,17 @@ const toast = useToast()
 const subjects = ref<Subject[]>([])
 const activeId = ref<number | null>(null)
 const active = computed(() => subjects.value.find(s => s.id === activeId.value) ?? null)
+
+// ── 关键词：点一下复制，去 B 站搜索 ──
+const keywords = computed(() => (active.value?.keywords ?? '').split(/[,，、\n]/).map(k => k.trim()).filter(Boolean))
+async function copyKeyword(k: string) {
+  try {
+    await navigator.clipboard.writeText(k)
+    toast.success(`已复制「${k}」`)
+  } catch {
+    toast.error('复制失败，请手动选择文本')
+  }
+}
 const loadingSubjects = ref(false)
 const loadingVideos = ref(false)
 // 每个科目的视频只请求一次，切换科目即时显示
@@ -312,6 +337,20 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.hub-kw { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.hub-kw-label { font-size: 12px; color: var(--c-text-3); margin-right: 2px; }
+.hub-kw-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 99px;
+  font-size: 12px; color: var(--c-text-2, var(--c-text));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  cursor: pointer; user-select: all;
+  transition: background var(--t), color var(--t);
+}
+.hub-kw-chip svg { opacity: 0.6; }
+.hub-kw-chip:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--c-text); }
+
 .hub {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);

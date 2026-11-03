@@ -15,6 +15,8 @@ export interface Subject {
   description: string
   icon: string
   color: string
+  /** B 站搜索关键词，逗号分隔 */
+  keywords: string
 }
 
 export type VideoLevel = '入门' | '基础' | '进阶'

@@ -68,6 +68,6 @@ class AdminUserCreateSerializer(CamelCaseMixin, serializers.ModelSerializer):
 class SubjectSerializer(CamelCaseMixin, serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'description', 'icon', 'color']
+        fields = ['id', 'name', 'description', 'icon', 'color', 'keywords']
 
 

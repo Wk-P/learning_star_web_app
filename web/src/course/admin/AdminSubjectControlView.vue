@@ -107,6 +107,11 @@
               <label class="field-label">描述</label>
               <textarea v-model="form.description" class="textarea" rows="2" maxlength="60" placeholder="一句话介绍，显示在学生端科目页顶部" />
             </div>
+            <div class="field">
+              <label class="field-label">搜索关键词</label>
+              <input v-model="form.keywords" class="input" maxlength="200" placeholder="逗号分隔，如：数据结构, 算法入门, 王道考研" />
+              <p class="field-hint">学生端可一键复制，用于在 B 站搜索相关教学视频</p>
+            </div>
             <div class="sc-form-grid">
               <div class="field">
                 <label class="field-label">图标</label>
@@ -168,7 +173,7 @@ const saving = ref(false)
 const showForm = ref(false)
 const subjects = ref<Subject[]>([])
 const editTarget = ref<Subject | null>(null)
-const blank = () => ({ name: '', description: '', icon: '📖', color: COLORS[1]! })
+const blank = () => ({ name: '', description: '', icon: '📖', color: COLORS[1]!, keywords: '' })
 const form = ref(blank())
 
 interface Count { total: number; none: number; levels: Record<VideoLevel, number> }
@@ -209,7 +214,7 @@ function openCreate() {
 
 function openEdit(s: Subject) {
   editTarget.value = s
-  form.value = { name: s.name, description: s.description, icon: s.icon || '📖', color: s.color || COLORS[1]! }
+  form.value = { name: s.name, description: s.description, icon: s.icon || '📖', color: s.color || COLORS[1]!, keywords: s.keywords ?? '' }
   showForm.value = true
 }
 
