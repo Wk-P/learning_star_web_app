@@ -1,0 +1,20 @@
+[project]
+name = "topik"
+version = "0.1.0"
+description = "Learning Star 韩语栏目后端：统一账号与登录、韩语资源、学习权限"
+# 生产环境为 Python 3.10（/usr/bin/python3.10）；升级到 Django 6 需要 Python >= 3.12
+requires-python = ">=3.10"
+dependencies = [
+    "django==5.2.14",
+    "django-cors-headers==4.9.0",
+    "djangorestframework==3.17.1",
+    "djangorestframework-simplejwt==5.5.1",
+    "pyjwt==1.7.1",
+    "python-dotenv==1.2.2",
+    "asgiref==3.8.1",
+    "sqlparse==0.5.5",
+    "aiohttp==3.11.18",
+    "aiofiles==24.1.0",
+    "gunicorn==23.0.0",
+]
+
