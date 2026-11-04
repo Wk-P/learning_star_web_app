@@ -17,9 +17,9 @@ topik/backend/    Django：账号与登录（统一账号以此为准）、韩�
 course/backend/   Django：科目、B 站链接、路线图；信任 topik 签发的登录令牌
 images/src/       图片原图；web/public 下的图片由 scripts/optimize_images.py 生成
 deploy/           nginx、systemd、环境变量模板（deploy/.env 为服务器信息）
-scripts/
-  unix/           macOS / Linux：dev.sh、deploy.sh（部署，依赖 rsync）
-  windows/        Windows：dev.ps1、deploy.ps1（经 WSL 调用 unix/deploy.sh）
+scripts/          开发与部署脚本，按平台分开，两边命令一一对应
+  unix/           macOS / Linux：dev.sh、deploy.sh（根目录 Makefile 转发到这里）
+  windows/        Windows：dev.ps1、deploy.ps1（部署用 Git Bash 运行 unix/deploy.sh，不需要 WSL）
   optimize_images.py  图片生成（跨平台，uv run）
 ```
 
@@ -47,38 +47,56 @@ scripts/
 
 ## 本地开发
 
-```bash
-make dev-topik-api    # :8000
-make dev-course-api   # :8001
-make dev-web          # :5173，代理 /api/topik、/api/course、/media 到两个后端
-```
+依赖：[uv](https://docs.astral.sh/uv/)、Node `^20.19` 或 `>=22.12`、pnpm。
 
-**Windows**：没有 `make`，用 PowerShell 脚本代替（首次先 `.\scripts\windows\dev.ps1 setup`）：
+| 操作 | macOS / Linux | Windows（PowerShell） |
+|---|---|---|
+| 首次准备 | `make setup` | `.\scripts\windows\dev.ps1 setup` |
+| 同时启动三个服务 | `make dev` | `.\scripts\windows\dev.ps1 all` |
+| topik 后端 :8000 | `make dev-topik-api` | `.\scripts\windows\dev.ps1 topik-api` |
+| course 后端 :8001 | `make dev-course-api` | `.\scripts\windows\dev.ps1 course-api` |
+| 前端 :5173 | `make dev-web` | `.\scripts\windows\dev.ps1 web` |
+| 构建前端 | `make build` | `.\scripts\windows\dev.ps1 build` |
+| 重新生成图片 | `make images` | `.\scripts\windows\dev.ps1 images` |
 
-```powershell
-.\scripts\windows\dev.ps1 setup       # 创建 topik/.venv、装依赖、生成 .env.develop、安装前端依赖
-.\scripts\windows\dev.ps1 all         # 三个新窗口同时启动；也可单独 topik-api / course-api / web
-```
+`make` 只是转发到 `./scripts/unix/dev.sh`，不带参数运行脚本会列出全部用法。
+前端 :5173 会把 `/api/topik`、`/api/course`、`/media` 代理到两个后端。
 
-需要 Python 3.13+ 的 uv、Node 20.19+/22.12+、pnpm。部署脚本依赖 `rsync` 和 bash，Windows 上用 `scripts\windows\deploy.ps1`（通过 WSL 调用 `scripts/unix/deploy.sh`）。
-
-首次开发（macOS/Linux）：`cp topik/backend/.env.develop.example topik/backend/.env.develop` 并按需修改。
+两个后端都是 uv 项目（`pyproject.toml` + `uv.lock`），各自一个 `.venv`：topik 为 Python 3.10 / Django 5.2，
+course 为 Python 3.13 / Django 6，与生产环境一致。改依赖用 `uv add` / `uv remove`（在 `topik/` 或 `course/` 下），不要手动 pip install。
+`setup` 对两个后端执行 `uv sync`、安装前端依赖，并在缺少时由模板生成 `topik/backend/.env.develop`（按需修改）。
 开发环境两个后端默认使用同一个开发用 `JWT_SIGNING_KEY`，无需额外配置。
 **任何 `.env*` 文件都不要提交到 git。**
 
+### 跨平台字符约定
+
+| | 约定 | 由谁保证 |
+|---|---|---|
+| 换行 | 一律 LF；只有 `.ps1` / `.cmd` / `.bat` 用 CRLF | `.gitattributes`（检出时生效，不受 Windows `core.autocrlf` 影响） |
+| 文件编码 | 一律 UTF-8 无 BOM；`.ps1` 为 UTF-8 **带 BOM**（PowerShell 5.1 否则按 GBK 读中文） | `.editorconfig`、`.vscode/settings.json` |
+| Python 读写文件 | 必须写 `encoding='utf-8'`（Windows 上 `open()` 默认是 GBK） | 代码 + 开发脚本设置 `PYTHONUTF8=1` 兜底 |
+
+服务器是 Linux，以上约定保证在 Windows / macOS 上开发、部署出去的文件与在 Linux 上完全相同。
+
 ## 部署
 
-先 `cp deploy/.env.example deploy/.env`，填写服务器的 SSH 地址、端口、私钥路径和部署目录（`deploy/.env` 不进 git）。
+先把 `deploy/.env.example` 复制为 `deploy/.env`，填写服务器的 SSH 地址、端口、私钥路径和部署目录（`deploy/.env` 不进 git）。
 
 首次部署前，在服务器上按 `deploy/env/` 的模板准备两个后端的环境变量文件，
 `JWT_SIGNING_KEY` 两边必须相同，且必须是新生成的随机值（旧的生产密钥曾泄露在 git 历史中，已作废）。
-生成：`python3 -c "import secrets; print(secrets.token_urlsafe(50))"`
+生成：`python3 -c "import secrets; print(secrets.token_urlsafe(50))"`（Windows 上用 `python`）
 
-```bash
-./scripts/unix/deploy.sh users            # 预览 course 账号并入 topik
-./scripts/unix/deploy.sh users --apply    # 写入
-./scripts/unix/deploy.sh all              # topik 后端 → course 后端 → 前端 → nginx
-```
+| 操作 | macOS / Linux | Windows（PowerShell） |
+|---|---|---|
+| 预览 course 账号并入 topik | `./scripts/unix/deploy.sh users` | `.\scripts\windows\deploy.ps1 users` |
+| 写入 | `./scripts/unix/deploy.sh users --apply` | `.\scripts\windows\deploy.ps1 users --apply` |
+| 全部：topik → course → 前端 → nginx | `make deploy-all` | `.\scripts\windows\deploy.ps1 all` |
+| 单项 | `make deploy-web` 等 | `.\scripts\windows\deploy.ps1 web` 等 |
+
+B 站链接数据单独同步：`pull-data` 拉到本地修改，再用 `push-data` 推回（服务器在此期间被改过会中止）。
+
+Windows 部署需要 [Git for Windows](https://git-scm.com/download/win)：`deploy.ps1` 用它自带的 bash 运行同一份 `deploy.sh`。
+本机没有 `rsync` 时（Windows 默认如此）脚本自动改用 tar + ssh 整包上传，排除规则与删除保护和 rsync 一致。
 
 部署永不覆盖服务器上的 `media/`、`db.sqlite3`、`.env*`、`staticfiles/` 与课程站 `bilibili/` 数据。
 
