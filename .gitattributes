@@ -1,0 +1,15 @@
+# 所有文本文件在任何平台都检出为 LF：代码、systemd、nginx 配置都会部署到 Linux 服务器，
+# CRLF 会让 shell 脚本、systemd 单元出错（Windows 上 core.autocrlf=true 默认会转成 CRLF）
+* text=auto eol=lf
+
+# Windows 原生脚本保留 CRLF
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary

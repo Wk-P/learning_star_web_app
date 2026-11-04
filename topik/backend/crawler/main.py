@@ -10,7 +10,7 @@ CONFIG_PATH = BASE_DIR / 'config.json'
 
 # 读取配置文件
 def read_config():
-    with open(CONFIG_PATH, 'r') as f:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         config = json.load(f)
     return config
 

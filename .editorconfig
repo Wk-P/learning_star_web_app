@@ -1,0 +1,24 @@
+# 跨平台统一：所有文件 UTF-8 + LF（与 .gitattributes 一致）
+# JetBrains 内置支持；VS Code 需安装 EditorConfig 扩展（.vscode/settings.json 已做同样设置）
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Windows PowerShell 5.1 只有带 BOM 才按 UTF-8 读中文
+[*.ps1]
+charset = utf-8-bom
+end_of_line = crlf
+
+[*.{cmd,bat}]
+end_of_line = crlf
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
