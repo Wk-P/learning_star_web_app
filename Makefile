@@ -1,8 +1,10 @@
 # macOS / Linux 入口，实际逻辑在 scripts/unix/；Windows 用 scripts/windows/*.ps1
-.PHONY: setup dev dev-topik-api dev-course-api dev-web build images \
+.PHONY: setup migrate info dev dev-topik-api dev-course-api dev-web build images \
         deploy-web deploy-topik deploy-course deploy-nginx deploy-all
 
 setup:          ; ./scripts/unix/dev.sh setup
+migrate:        ; ./scripts/unix/dev.sh migrate
+info:           ; ./scripts/unix/dev.sh info
 dev:            ; ./scripts/unix/dev.sh all
 dev-topik-api:  ; ./scripts/unix/dev.sh topik-api
 dev-course-api: ; ./scripts/unix/dev.sh course-api

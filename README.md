@@ -52,6 +52,8 @@ scripts/          开发与部署脚本，按平台分开，两边命令一一�
 | 操作 | macOS / Linux | Windows（PowerShell） |
 |---|---|---|
 | 首次准备 | `make setup` | `.\scripts\windows\dev.ps1 setup` |
+| 数据库迁移（拉取新代码后出现 unapplied migrations 提示时） | `make migrate` | `.\scripts\windows\dev.ps1 migrate` |
+| 查看访问地址与本地测试账号 | `make info` | `.\scripts\windows\dev.ps1 info` |
 | 同时启动三个服务 | `make dev` | `.\scripts\windows\dev.ps1 all` |
 | topik 后端 :8000 | `make dev-topik-api` | `.\scripts\windows\dev.ps1 topik-api` |
 | course 后端 :8001 | `make dev-course-api` | `.\scripts\windows\dev.ps1 course-api` |
@@ -64,7 +66,9 @@ scripts/          开发与部署脚本，按平台分开，两边命令一一�
 
 两个后端都是 uv 项目（`pyproject.toml` + `uv.lock`），各自一个 `.venv`：topik 为 Python 3.10 / Django 5.2，
 course 为 Python 3.13 / Django 6，与生产环境一致。改依赖用 `uv add` / `uv remove`（在 `topik/` 或 `course/` 下），不要手动 pip install。
-`setup` 对两个后端执行 `uv sync`、安装前端依赖，并在缺少时由模板生成 `topik/backend/.env.develop`（按需修改）。
+`setup` 对两个后端执行 `uv sync`、安装前端依赖，在缺少时由模板生成 `topik/backend/.env.develop`（按需修改），迁移两个后端的本地 SQLite 数据库，
+并按 `.env.develop` 的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 创建本地测试管理员（默认 `admin` / `change-me`）。
+course 后端信任 topik 的登录令牌，首次访问时自动建立对应用户，无需单独创建。
 开发环境两个后端默认使用同一个开发用 `JWT_SIGNING_KEY`，无需额外配置。
 **任何 `.env*` 文件都不要提交到 git。**
 

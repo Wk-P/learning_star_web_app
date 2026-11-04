@@ -16,10 +16,15 @@
 # Windows 请用 .\scripts\windows\deploy.ps1，参数相同。
 set -euo pipefail
 
-usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit 1; }
+# 不带参数是正常查看帮助（退出码 0），命令写错才算失败
+usage() {
+  [ -n "${1:-}" ] && printf '未知命令：%s\n\n' "$1" >&2
+  awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
+  [ -z "${1:-}" ]; exit
+}
 case "${1:-}" in
   check|web|topik|course|pull-data|push-data|nginx|users|all) ;;
-  *) usage ;;
+  *) usage "${1:-}" ;;
 esac
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
