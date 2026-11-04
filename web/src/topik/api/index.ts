@@ -133,6 +133,15 @@ export interface PdfItem {
   id: number
   title: string
   url: string
+  /** 扩展名（pdf、xlsx、hwp …）；旧版后端没有此字段时用 fileExt(url) */
+  ext?: string
+}
+
+/** 从文件地址取扩展名（小写，不含点） */
+export function fileExt(url: string): string {
+  const name = url.split('?')[0]?.split('/').pop() ?? ''
+  const dot = name.lastIndexOf('.')
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
 }
 
 export interface UserItem {

@@ -14,6 +14,9 @@
         <el-table :data="folder.pdfs" class="admin-table">
           <el-table-column prop="id" label="ID" width="72" />
           <el-table-column prop="title" label="标题" min-width="160" />
+          <el-table-column label="类型" width="80">
+            <template #default="{ row }">{{ row.ext || fileExt(row.url) }}</template>
+          </el-table-column>
           <el-table-column prop="url" label="URL" show-overflow-tooltip />
         </el-table>
       </div>
@@ -24,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { api } from '@/topik/api'
+import { api, fileExt } from '@/topik/api'
 import type { PdfItem } from '@/topik/api'
 
 const loading = ref(true)

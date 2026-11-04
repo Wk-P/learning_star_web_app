@@ -48,7 +48,7 @@
           <a class="item-btn" :href="file.url" target="_blank" download @click="addHistory({ type: 'file', title: file.title, url: file.url, path: file.path })">
             <span class="item-icon"><AppIcon name="download" :size="16" /></span>
             <span class="item-title">{{ file.title }}</span>
-            <span class="item-ext">pdf</span>
+            <span class="item-ext">{{ file.ext }}</span>
           </a>
         </li>
       </ul>
@@ -61,13 +61,14 @@
 import EmptyState from '@/core/components/EmptyState.vue'
 import AppIcon from '@/core/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
-import { api } from '@/topik/api'
+import { api, fileExt } from '@/topik/api'
 import { addHistory } from '@/topik/composables/useHistory'
 
 interface PdfFile {
   id: number
   url: string
   title: string
+  ext: string
   path: string[]
 }
 
@@ -86,6 +87,7 @@ onMounted(async () => {
         id: p.id,
         title: p.title,
         url: p.url,
+        ext: p.ext || fileExt(p.url),
         path: [...folder.path, p.title],
       }))
     )

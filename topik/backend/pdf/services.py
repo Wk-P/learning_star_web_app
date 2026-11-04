@@ -5,15 +5,24 @@ from backend.utils import natural_key
 from .models import Pdf
 from .serializers import PdfSerializer
 
+# 「学习资料」可下载的文档类型（前端为下载链接，不在线预览，所以不限于 PDF）
+DOC_EXTENSIONS = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.hwp', '.hwpx'}
+
+
+def _is_doc(path: Path) -> bool:
+    # 跳过隐藏文件与 Office 打开文件时生成的 ~$ 临时文件
+    return (path.is_file() and path.suffix.lower() in DOC_EXTENSIONS
+            and not path.name.startswith(('.', '~$')))
+
 
 def get_pdf_list(user=None) -> list[dict]:
     """
-    Scan PDF_ROOT for .pdf files.
+    Scan PDF_ROOT for document files (see DOC_EXTENSIONS).
 
     Expected layout:
         PDF_ROOT/
         └── {folder...}/
-            └── filename.pdf     ← file itself is the PDF item
+            └── filename.pdf     ← file itself is the item (also .xlsx/.hwp/...)
     """
     root = Path(settings.PDF_ROOT)
     if not root.exists():
@@ -21,7 +30,7 @@ def get_pdf_list(user=None) -> list[dict]:
 
     folders_map: dict[tuple, list] = {}
 
-    for pdf in sorted(root.rglob('*.pdf')):
+    for pdf in sorted(p for p in root.rglob('*') if _is_doc(p)):
         rel        = pdf.relative_to(root)
         parts      = rel.parts
         folder_key = parts[:-1]
@@ -34,6 +43,7 @@ def get_pdf_list(user=None) -> list[dict]:
             'id':    abs(hash(str(pdf))) % (2 ** 31),
             'title': title,
             'url':   url,
+            'ext':   pdf.suffix.lower().lstrip('.'),
         })
 
     result = []
