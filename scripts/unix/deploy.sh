@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # 部署到生产服务器。服务器信息读取 deploy/.env（不进 git），模板见 deploy/.env.example
-#   ./deploy/deploy.sh web      构建并部署前端（web/）
-#   ./deploy/deploy.sh topik    部署 topik 后端（账号/登录、韩语资源）
-#   ./deploy/deploy.sh course   部署 course 后端（只有代码，不碰数据）
-#   ./deploy/deploy.sh pull-data 把服务器上的 B 站链接数据拉到本地（course/backend/bilibili/）
-#   ./deploy/deploy.sh push-data 把本地改好的 B 站链接数据推回服务器（需先 pull-data）
-#   ./deploy/deploy.sh nginx    安装 80 端口统一入口 + systemd 单元（首次/变更时）
-#   ./deploy/deploy.sh users    预览 course 账号并入 topik；加 --apply 真正写入
-#   ./deploy/deploy.sh all      topik → course → web → nginx
+#   ./scripts/unix/deploy.sh web      构建并部署前端（web/）
+#   ./scripts/unix/deploy.sh topik    部署 topik 后端（账号/登录、韩语资源）
+#   ./scripts/unix/deploy.sh course   部署 course 后端（只有代码，不碰数据）
+#   ./scripts/unix/deploy.sh pull-data 把服务器上的 B 站链接数据拉到本地（course/backend/bilibili/）
+#   ./scripts/unix/deploy.sh push-data 把本地改好的 B 站链接数据推回服务器（需先 pull-data）
+#   ./scripts/unix/deploy.sh nginx    安装 80 端口统一入口 + systemd 单元（首次/变更时）
+#   ./scripts/unix/deploy.sh users    预览 course 账号并入 topik；加 --apply 真正写入
+#   ./scripts/unix/deploy.sh all      topik → course → web → nginx
 #
 # 代码部署永不覆盖服务器上的数据：media/、db.sqlite3、.env*、staticfiles/、course 的 bilibili/
 # bilibili/ 只能用 pull-data / push-data 单独同步；push-data 会在服务器自 pull-data 后被改过时中止
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ENV_FILE="${DEPLOY_ENV:-$ROOT/deploy/.env}"
 if [ ! -f "$ENV_FILE" ]; then
   echo "缺少 ${ENV_FILE}：cp deploy/.env.example deploy/.env 后填写服务器信息" >&2; exit 1
@@ -107,16 +107,16 @@ pull_data() {
   mkdir -p "$BILI_DIR"
   sync --include '*.txt' --exclude '*' "$SSH_HOST:$COURSE_DIR/backend/bilibili/" "$BILI_DIR/"
   remote_bili_hash > "$BILI_SNAPSHOT"
-  echo "已拉取服务器数据到 ${BILI_DIR}，修改后用 ./deploy/deploy.sh course 推送"
+  echo "已拉取服务器数据到 ${BILI_DIR}，修改后用 ./scripts/unix/deploy.sh course 推送"
 }
 
 push_data() {
   if [ ! -f "$BILI_SNAPSHOT" ]; then
-    echo "本地没有 pull-data 快照，请先 ./deploy/deploy.sh pull-data" >&2; exit 1
+    echo "本地没有 pull-data 快照，请先 ./scripts/unix/deploy.sh pull-data" >&2; exit 1
   fi
   if [ "$(remote_bili_hash)" != "$(cat "$BILI_SNAPSHOT")" ]; then
     echo "服务器上的 B 站链接数据在 pull-data 之后被改过（后台编辑？），为避免覆盖已中止推送。" >&2
-    echo "请先 ./deploy/deploy.sh pull-data 重新拉取，再在本地修改。" >&2
+    echo "请先 ./scripts/unix/deploy.sh pull-data 重新拉取，再在本地修改。" >&2
     exit 1
   fi
   ssh_run "cp -a $COURSE_DIR/backend/bilibili $COURSE_DIR/backend/bilibili.bak-\$(date +%Y%m%d%H%M%S)"
@@ -138,7 +138,7 @@ deploy_course() {
 
 deploy_nginx() {
   ssh_run "mkdir -p $WEB_DIR"
-  sync --delete --exclude deploy.sh --exclude '.env*' "$ROOT/deploy/" "$SSH_HOST:$WEB_DIR/deploy/"
+  sync --delete --exclude '.env*' "$ROOT/deploy/" "$SSH_HOST:$WEB_DIR/deploy/"
   ssh_run "set -e; cd $WEB_DIR/deploy
     sudo mkdir -p /etc/nginx/snippets
     sudo cp nginx/learning_star_proxy.conf /etc/nginx/snippets/
@@ -172,5 +172,5 @@ case "${1:-}" in
   all)    step jwt-check check_jwt_key; step topik deploy_topik; step course deploy_course
           step web deploy_web; step nginx deploy_nginx
           step restart ssh_run "sudo systemctl restart player3 course-backend && systemctl is-active player3 course-backend" ;;
-  *) sed -n '2,13p' "$0"; exit 1 ;;
+  *) sed -n "2,13p" "$0"; exit 1 ;;
 esac

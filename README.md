@@ -16,7 +16,11 @@ web/              唯一的前端（Vue 3 + Vite）
 topik/backend/    Django：账号与登录（统一账号以此为准）、韩语资源、学习权限
 course/backend/   Django：科目、B 站链接、路线图；信任 topik 签发的登录令牌
 images/src/       图片原图；web/public 下的图片由 scripts/optimize_images.py 生成
-deploy/           nginx、systemd、环境变量模板、部署脚本
+deploy/           nginx、systemd、环境变量模板（deploy/.env 为服务器信息）
+scripts/
+  unix/           macOS / Linux：dev.sh、deploy.sh（部署，依赖 rsync）
+  windows/        Windows：dev.ps1、deploy.ps1（经 WSL 调用 unix/deploy.sh）
+  optimize_images.py  图片生成（跨平台，uv run）
 ```
 
 ### 统一登录
@@ -49,7 +53,16 @@ make dev-course-api   # :8001
 make dev-web          # :5173，代理 /api/topik、/api/course、/media 到两个后端
 ```
 
-首次开发：`cp topik/backend/.env.develop.example topik/backend/.env.develop` 并按需修改。
+**Windows**：没有 `make`，用 PowerShell 脚本代替（首次先 `.\scripts\windows\dev.ps1 setup`）：
+
+```powershell
+.\scripts\windows\dev.ps1 setup       # 创建 topik/.venv、装依赖、生成 .env.develop、安装前端依赖
+.\scripts\windows\dev.ps1 all         # 三个新窗口同时启动；也可单独 topik-api / course-api / web
+```
+
+需要 Python 3.13+ 的 uv、Node 20.19+/22.12+、pnpm。部署脚本依赖 `rsync` 和 bash，Windows 上用 `scripts\windows\deploy.ps1`（通过 WSL 调用 `scripts/unix/deploy.sh`）。
+
+首次开发（macOS/Linux）：`cp topik/backend/.env.develop.example topik/backend/.env.develop` 并按需修改。
 开发环境两个后端默认使用同一个开发用 `JWT_SIGNING_KEY`，无需额外配置。
 **任何 `.env*` 文件都不要提交到 git。**
 
@@ -62,14 +75,14 @@ make dev-web          # :5173，代理 /api/topik、/api/course、/media 到两�
 生成：`python3 -c "import secrets; print(secrets.token_urlsafe(50))"`
 
 ```bash
-./deploy/deploy.sh users            # 预览 course 账号并入 topik
-./deploy/deploy.sh users --apply    # 写入
-./deploy/deploy.sh all              # topik 后端 → course 后端 → 前端 → nginx
+./scripts/unix/deploy.sh users            # 预览 course 账号并入 topik
+./scripts/unix/deploy.sh users --apply    # 写入
+./scripts/unix/deploy.sh all              # topik 后端 → course 后端 → 前端 → nginx
 ```
 
 部署永不覆盖服务器上的 `media/`、`db.sqlite3`、`.env*`、`staticfiles/` 与课程站 `bilibili/` 数据。
 
 ## 图片
 
-原图放在 `images/src/`，运行 `make images` 生成 `web/public` 下的 WebP（多尺寸）与 PNG 兜底。
+原图放在 `images/src/`，运行 `make images`（Windows：`.\scripts\windows\dev.ps1 images`）生成 `web/public` 下的 WebP（多尺寸）与 PNG 兜底。
 模板里引用 `public/` 资源用 `asset('img/x.webp')`，不要写死路径。
