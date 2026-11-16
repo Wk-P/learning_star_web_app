@@ -11,3 +11,6 @@ staticfiles/
 .bot
 # 部署脚本的服务器信息只留本地，模板见 deploy/.env.example
 deploy/.env
+
+# 合并迁移：线上备份快照（含数据库与密码哈希），只留本地
+_migration/backups/
