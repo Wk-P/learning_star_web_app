@@ -102,7 +102,7 @@ API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`
 
 服务器布局：`~/learning_star/`（`backend/`、`.venv/`、`web/dist/`、`data/`、`.env`、`log/`），
 systemd 服务 `learning-star`（gunicorn 127.0.0.1:8010），nginx 80 端口统一入口。
-部署永不覆盖服务器上的 `data/` 与 `.env`。
+部署永不覆盖服务器上的 `data/`；线上 `.env` 只有本地存在 `deploy/.env.production` 时才会上传覆盖（`deploy.py env` / `all`）。
 
 部署上传的是本地工作区，所以 `api` / `web` / `nginx` / `all` 只能在 `main` 分支执行，且须无未提交改动、与 `origin/main` 一致（脚本会检查）。
 
