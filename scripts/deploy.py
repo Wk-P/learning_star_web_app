@@ -205,7 +205,13 @@ if ! "$UV" python find "$PY" >/dev/null 2>&1; then
     else "$UV" python install "$PY" && break; fi
   done
 fi
-"$UV" sync --frozen --no-dev -q
+# 依赖：按 uv.lock 的精确版本安装，但从服务器配置的国内源（uv.toml）下载。
+# 直接 uv sync --frozen 会用锁文件里记录的 pypi.org 地址，在国内很慢。
+[ -x .venv/bin/python ] && .venv/bin/python -c 'import sys; sys.exit(sys.version_info[:2] != tuple(map(int, "'"$PY"'".split("."))))' \
+  || "$UV" venv --clear --python "$PY" .venv
+"$UV" export --frozen --no-dev --no-hashes --no-emit-project -q -o .requirements.txt
+"$UV" pip install --python .venv/bin/python -r .requirements.txt
+rm -f .requirements.txt
 cd backend
 ../.venv/bin/python manage.py migrate --noinput
 ../.venv/bin/python manage.py collectstatic --noinput -v 0
