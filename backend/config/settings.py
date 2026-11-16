@@ -1,6 +1,7 @@
 """Learning Star 后端：语言学习 + 课程，一个项目、一个数据库、一套账号。
 
-配置全部来自环境变量；本地开发与服务器都读取仓库根目录的 .env（模板 .env.example，不进 git）。
+配置全部来自环境变量与 .env 文件（模板 .env.example，不进 git）：
+默认读仓库根目录的 .env；设置环境变量 ENV_FILE 可指定别的位置（服务器上由 systemd 与部署脚本设置）。
 """
 import os
 from datetime import timedelta
@@ -10,7 +11,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent      # backend/
 ROOT_DIR = BASE_DIR.parent                              # 仓库根目录 / 服务器部署目录
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(os.environ.get('ENV_FILE') or ROOT_DIR / '.env')
 
 
 def env_list(name: str, default: str = '') -> list[str]:
