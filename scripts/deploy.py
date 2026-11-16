@@ -14,6 +14,9 @@
     cutover        预览切换步骤；加 --yes 执行。旧服务停机时间约为导入数据 + 移动媒体目录（同盘 mv，秒级）
     rollback       回到合并前的两个旧服务（加 --yes 执行）；切换后新产生的数据不会带回旧库
 
+上传代码的命令（api / web / nginx / all / cutover --yes）只允许在 main 分支执行，
+且工作区无未提交改动、与 origin/main 一致，保证线上运行的就是远端 main。
+
 服务器信息读取 deploy/.env（不进 git，模板 deploy/.env.example）。
 部署永不覆盖服务器上的 data/（数据库与媒体）与 .env。
 """
@@ -453,6 +456,36 @@ def cmd_rollback(cfg, args) -> None:
     remote(cfg, ROLLBACK, APP=cfg['APP_DIR'], SERVICE=SERVICE)
 
 
+# ── 只从 main 部署 ────────────────────────────────────────────────────────────
+# 部署上传的是本地工作区的文件，所以要求：在 main 分支、没有未提交改动、与 origin/main 完全一致。
+DEPLOY_BRANCH = 'main'
+SHIPS_CODE = {'api', 'web', 'nginx', 'all', 'cutover'}
+
+
+def git(*args: str) -> str:
+    r = subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if r.returncode != 0:
+        die(f'git {" ".join(args)} 失败：{r.stderr.strip()}')
+    return r.stdout.strip()
+
+
+def require_main() -> None:
+    branch = git('rev-parse', '--abbrev-ref', 'HEAD')
+    if branch != DEPLOY_BRANCH:
+        die(f'线上只从 {DEPLOY_BRANCH} 部署，当前在 {branch}。先合并到 {DEPLOY_BRANCH}，再 git switch {DEPLOY_BRANCH}')
+    if git('status', '--porcelain', '--untracked-files=no'):
+        die('有未提交的改动，部署会把它们一起带上线。先提交或 git stash')
+    print(f'▶ 同步 origin/{DEPLOY_BRANCH}')
+    git('fetch', 'origin', DEPLOY_BRANCH)
+    local, upstream = git('rev-parse', 'HEAD'), git('rev-parse', f'origin/{DEPLOY_BRANCH}')
+    if local != upstream:
+        ahead = git('rev-list', '--count', f'origin/{DEPLOY_BRANCH}..HEAD')
+        behind = git('rev-list', '--count', f'HEAD..origin/{DEPLOY_BRANCH}')
+        die(f'本地 {DEPLOY_BRANCH} 与 origin/{DEPLOY_BRANCH} 不一致（领先 {ahead}、落后 {behind} 个提交）。'
+            f'先 git pull / git push，保证线上代码就是远端 {DEPLOY_BRANCH}')
+    print(f'  部署提交 {local[:8]} {git("log", "-1", "--format=%s")}')
+
+
 COMMANDS = {
     'check': cmd_check, 'api': cmd_api, 'web': cmd_web, 'nginx': cmd_nginx, 'all': cmd_all,
     'backup': cmd_backup, 'cutover': cmd_cutover, 'rollback': cmd_rollback,
@@ -470,6 +503,9 @@ def main() -> None:
         sys.exit(1)
     if not shutil.which('ssh'):
         die('缺少 ssh（Windows 10+ 自带 OpenSSH 客户端；或安装 Git for Windows）')
+    cmd = sys.argv[1]
+    if cmd in SHIPS_CODE and (cmd != 'cutover' or '--yes' in sys.argv[2:]):
+        require_main()
     cfg = load_config()
     t0 = time.time()
     fn(cfg, sys.argv[2:])

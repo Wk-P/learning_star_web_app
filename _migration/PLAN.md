@@ -117,3 +117,4 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
   旧目录的本地开发数据移到 _migration/backups/local_pre_merge/。deploy.py check 实测通过。
   下一步 12：用户授权后执行 `uv run scripts/deploy.py cutover --yes`；之后验证线上并考虑合并 merge → main。
 - 2026-11-16 scripts/dev.py 改名 scripts/task.py；`dev all|stop|restart|status|logs` 后台运行（pid/日志在 data/.dev/），控制台只输出地址与测试账号
+- 2026-11-16 deploy.py 加 main 守卫：上传代码的命令只能在 main、干净、与 origin/main 一致时执行；merge 分支由用户手动合并后删除
