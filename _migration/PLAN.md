@@ -91,10 +91,10 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - [x] 1. 线上只读采集（结构、数据快照、媒体清单、配置）
 - [x] 2. 下载到本地 `_migration/backups/`
 - [x] 3. 创建 merge 分支、写本方案
-- [ ] 4. 根目录统一 uv 项目（pyproject/uv.lock/.python-version），删除 course/、topik/ 下的 pyproject 与 lock
-- [ ] 5. 新建 backend/ 单一 Django 项目：config、accounts、languages、courses（模型 + 迁移）
-- [ ] 6. 移植 API：账号/登录、语言资源扫描与受保护媒体、权限、课程科目与视频
-- [ ] 7. `import_legacy` 命令，用备份快照本地验证
+- [x] 4. 根目录统一 uv 项目（pyproject/uv.lock/.python-version=3.13）；旧 course/、topik/ 的 pyproject 在第 11 步随旧代码删除
+- [x] 5. 新建 backend/ 单一 Django 项目：config、accounts、languages、courses（模型 + 迁移）
+- [x] 6. 移植 API：账号/登录、语言资源扫描与受保护媒体、权限、课程科目与视频
+- [x] 7. `import_legacy` 命令，用备份快照本地验证
 - [ ] 8. 前端：API 层统一、topik → language、路由与文案、管理后台语言管理
 - [ ] 9. scripts/dev.py（setup/migrate/info/dev/api/web/build/images/import-legacy），删除 Makefile 与旧脚本
 - [ ] 10. scripts/deploy.py + deploy/（单服务 systemd、nginx、env 模板、cutover/rollback）
@@ -104,3 +104,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 ## 进度日志
 
 - 2026-11-16 完成 1–3：备份 `merge_backup_20261116-100534`；决策见上表。
+- 2026-11-16 完成 4–7：backend/（config、accounts、languages、courses）；`import_legacy` 用备份快照验证：5 用户（xujiahui 新 id 6）、28 权限、9 科目、52 视频，可重复执行。
+  冒烟测试 `_migration/tools/smoke_backend.py`（需先 import_legacy；运行：`.venv/Scripts/python -W ignore _migration/tools/smoke_backend.py backend`）。
+  修复：受保护媒体可被 `有权目录/../无权目录` 绕过（旧代码同样存在）。
+  本地开发用根目录 `.env`（DEBUG=True 等，不进 git）；数据在 backend/data/。
