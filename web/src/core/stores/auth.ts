@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { TOPIK_API } from '@/core/api/endpoints'
+import { API } from '@/core/api/endpoints'
 
 function parseJwtPayload(token: string): Record<string, unknown> {
   try {
@@ -65,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
   let refreshing: Promise<boolean> | null = null
   function refresh(): Promise<boolean> {
     if (!refreshToken.value) return Promise.resolve(false)
-    refreshing ??= fetch(`${TOPIK_API}/auth/token/refresh/`, {
+    refreshing ??= fetch(`${API}/auth/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh: refreshToken.value }),

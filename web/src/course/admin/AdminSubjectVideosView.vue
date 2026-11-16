@@ -319,7 +319,7 @@ async function handleEditSave() {
   }
   saving.value = true
   try {
-    await adminSubjectApi.updateVideo(subjectId, editTarget.value!.index, { ...editForm.value, tags: splitTags(editForm.value.tags) })
+    await adminSubjectApi.updateVideo(subjectId, editTarget.value!.id, { ...editForm.value, tags: splitTags(editForm.value.tags) })
     const { data } = await adminSubjectApi.listVideos(subjectId)
     videos.value = data
     showEditModal.value = false
@@ -335,7 +335,7 @@ async function handleDelete(v: BilibiliVideo) {
   const ok = await confirm({ title: '删除视频', message: `确认删除「${v.title}」？`, confirmText: '删除', type: 'danger' })
   if (!ok) return
   try {
-    await adminSubjectApi.deleteVideo(subjectId, v.index)
+    await adminSubjectApi.deleteVideo(subjectId, v.id)
     const { data } = await adminSubjectApi.listVideos(subjectId)
     videos.value = data
     toast.success('已删除')

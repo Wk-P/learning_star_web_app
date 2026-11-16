@@ -1,10 +1,6 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["pillow>=11"]
-# ///
 """生成 web/public 下实际使用的图片：WebP（按尺寸多版本）+ PNG 兜底 + 站点图标。
 
-运行：uv run scripts/optimize_images.py
+运行：uv run scripts/dev.py images（pillow 在根目录 pyproject 的 dev 依赖组里）
 原图只保存在 images/src，web/public 下的图片全部是生成物；换图后替换原图重跑即可。
 矢量图标源文件是 web/public/favicon.svg（手写，不由本脚本生成）。
 """

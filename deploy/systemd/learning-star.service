@@ -1,0 +1,19 @@
+[Unit]
+Description=Learning Star backend (Django / gunicorn)
+After=network.target
+
+[Service]
+User={{USER}}
+WorkingDirectory={{APP_DIR}}/backend
+# 配置来自 {{APP_DIR}}/.env（settings.py 自己读取，服务器本地文件，不进 git）
+ExecStart={{APP_DIR}}/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:{{PORT}} \
+    --workers 3 \
+    --timeout 300 \
+    --access-logfile {{APP_DIR}}/log/gunicorn_access.log \
+    --error-logfile {{APP_DIR}}/log/gunicorn_error.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

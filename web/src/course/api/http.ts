@@ -1,10 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useToast } from '@/course/composables/useToast'
 import { useAuthStore } from '@/core/stores/auth'
-import { COURSE_API } from '@/core/api/endpoints'
+import { API } from '@/core/api/endpoints'
 
 const http = axios.create({
-  baseURL: COURSE_API,
+  baseURL: `${API}/courses`,
   timeout: 10_000,
 })
 
@@ -16,7 +16,7 @@ http.interceptors.request.use((config) => {
   return config
 })
 
-// ── 响应拦截：401 时经 topik 刷新令牌后重试一次；其余错误统一提示 ──────────────
+// ── 响应拦截：401 时刷新令牌后重试一次；其余错误统一提示 ──────────────
 const STATUS_MESSAGES: Record<number, string> = {
   400: '请求参数错误',
   401: '登录已过期，请重新登录',
@@ -52,5 +52,10 @@ http.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+/** 视频列表补上位置序号 index（后端按顺序返回） */
+export function withIndex<T extends object>(res: { data: T[] }) {
+  return { ...res, data: res.data.map((v, index) => ({ ...v, index })) }
+}
 
 export default http

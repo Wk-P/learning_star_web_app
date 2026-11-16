@@ -15,23 +15,41 @@
       <button class="logout-btn" @click="logout">退出登录</button>
     </section>
 
+    <!-- display name -->
+    <section class="card">
+      <h2 class="section-title">显示名称</h2>
+      <div class="form">
+        <label class="field">
+          <span class="field-label">其他人看到的名字（可留空）</span>
+          <input v-model="displayName" class="field-input" maxlength="50" placeholder="例如：小明" />
+        </label>
+        <p v-if="nameMsg" class="msg" :class="nameOk ? 'msg--ok' : 'msg--error'">{{ nameMsg }}</p>
+        <button class="btn-save" :disabled="savingName" @click="saveDisplayName">{{ savingName ? '保存中…' : '保存' }}</button>
+      </div>
+    </section>
+
     <!-- permissions -->
     <section class="card">
-      <h2 class="section-title">我的访问权限</h2>
+      <h2 class="section-title">语言学习 · 我的访问权限</h2>
       <div v-if="loadingPerms" class="hint">加载中…</div>
+      <div v-else-if="auth.isAdmin" class="hint">管理员可以访问全部语言的全部内容。</div>
+      <div v-else-if="!permLanguages.length" class="hint">暂无权限。如果你刚注册，请联系管理员开通。</div>
       <template v-else>
-        <div v-for="tab in permTabs" :key="tab.key" class="perm-group">
-          <div class="perm-label">
-            <AppIcon :name="tab.icon" :size="15" class="perm-icon" />
-            {{ tab.label }}
-            <span class="perm-count" :class="{ active: perms[tab.key].length > 0 }">
-              {{ perms[tab.key].length }}
-            </span>
+        <div v-for="lang in permLanguages" :key="lang.slug" class="perm-lang">
+          <h3 class="perm-lang-name">{{ lang.name }}</h3>
+          <div v-for="tab in MEDIA_KINDS" :key="tab.key" class="perm-group">
+            <div class="perm-label">
+              <AppIcon :name="tab.icon" :size="15" class="perm-icon" />
+              {{ tab.label }}
+              <span class="perm-count" :class="{ active: lang.dirs[tab.key].length > 0 }">
+                {{ lang.dirs[tab.key].length }}
+              </span>
+            </div>
+            <div v-if="lang.dirs[tab.key].length === 0" class="perm-empty">暂无权限</div>
+            <ul v-else class="perm-list">
+              <li v-for="p in lang.dirs[tab.key]" :key="p" class="perm-chip">{{ p }}</li>
+            </ul>
           </div>
-          <div v-if="perms[tab.key].length === 0" class="perm-empty">暂无权限</div>
-          <ul v-else class="perm-list">
-            <li v-for="p in perms[tab.key]" :key="p" class="perm-chip">{{ p }}</li>
-          </ul>
         </div>
       </template>
     </section>
@@ -86,38 +104,65 @@ import AppIcon from '@/core/components/AppIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/core/stores/auth'
 import { useRouter } from 'vue-router'
-import { api } from '@/topik/api'
+import { accountsApi } from '@/core/api/accounts'
+import { errorDetail } from '@/core/api/http'
+import { languageApi, MEDIA_KINDS, emptyKindDirs, type PermissionMap } from '@/language/api'
+import { useLanguageStore } from '@/language/stores/languages'
 
 const auth = useAuthStore()
 const router = useRouter()
+const languages = useLanguageStore()
 
 function logout() {
   auth.clearTokens()
+  languages.clear()
   router.push({ name: 'login' })
 }
 
 const username = ref(auth.username)
 const initial = computed(() => (username.value || '?').charAt(0).toUpperCase())
 
-const permTabs = [
-  { key: 'video' as const, label: '视频', icon: 'video' as const },
-  { key: 'audio' as const, label: '音频', icon: 'audio' as const },
-  { key: 'pdf'   as const, label: '资料', icon: 'file' as const },
-]
-
-const perms = reactive({ video: [] as string[], audio: [] as string[], pdf: [] as string[] })
+const perms = ref<PermissionMap>({})
 const loadingPerms = ref(true)
+
+// 有权限的语言（按后台排序；已删除的语言用 slug 兜底显示）
+const permLanguages = computed(() => {
+  const known = languages.languages.map((l) => l.slug)
+  const slugs = [...known.filter((s) => s in perms.value), ...Object.keys(perms.value).filter((s) => !known.includes(s))]
+  return slugs.map((slug) => ({
+    slug,
+    name: languages.bySlug(slug)?.name ?? slug,
+    dirs: { ...emptyKindDirs(), ...perms.value[slug] },
+  }))
+})
+
+const displayName = ref('')
+const savingName = ref(false)
+const nameMsg = ref('')
+const nameOk = ref(false)
+
+async function saveDisplayName() {
+  savingName.value = true
+  nameMsg.value = ''
+  try {
+    const me = await accountsApi.updateMe({ display_name: displayName.value.trim() })
+    displayName.value = me.display_name
+    nameOk.value = true
+    nameMsg.value = '已保存'
+  } catch (e) {
+    nameOk.value = false
+    nameMsg.value = await errorDetail(e, '保存失败，请重试')
+  } finally {
+    savingName.value = false
+  }
+}
 
 onMounted(async () => {
   try {
-    const [me, data] = await Promise.all([
-      api.getMe(),
-      api.getMyPermissions(),
-    ])
+    const [me, data] = await Promise.all([accountsApi.me(), languageApi.myPermissions(), languages.load()])
     username.value = me.username
-    perms.video = data.video
-    perms.audio = data.audio
-    perms.pdf   = data.pdf
+    displayName.value = me.display_name
+    perms.value = data
   } finally {
     loadingPerms.value = false
   }
@@ -145,14 +190,13 @@ async function handleChangePassword() {
   }
   saving.value = true
   try {
-    const res = await api.changePassword(pwd.old, pwd.new1)
+    const res = await accountsApi.changePassword(pwd.old, pwd.new1)
     pwdOk.value = res.detail
     pwd.old = ''
     pwd.new1 = ''
     pwd.new2 = ''
   } catch (e: unknown) {
-    const body = await (e as Response).json().catch(() => ({}))
-    pwdError.value = body.detail || '修改失败，请重试'
+    pwdError.value = await errorDetail(e, '修改失败，请重试')
   } finally {
     saving.value = false
   }
@@ -166,6 +210,9 @@ async function handleChangePassword() {
   gap: 1.25rem;
   padding-top: 1.5rem;
 }
+
+.perm-lang + .perm-lang { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.perm-lang-name { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
 
 .card {
   background: var(--surface-1);
