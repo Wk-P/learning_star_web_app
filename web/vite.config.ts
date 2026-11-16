@@ -7,7 +7,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // @ts-expect-error -- postcss-prefix-selector 没有可用的类型声明
 import prefixSelector from 'postcss-prefix-selector'
 
-// 本地开发：后端（backend/，Django）跑在 8000，见 scripts/dev.py
+// 本地开发：后端（backend/，Django）跑在 8000，见 scripts/task.py
 const API_DEV = 'http://localhost:8000'
 
 // https://vite.dev/config/

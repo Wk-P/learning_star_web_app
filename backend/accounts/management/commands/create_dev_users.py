@@ -4,7 +4,7 @@
 
 - 账号名与密码来自 .env 的 DEV_ADMIN_USERNAME / DEV_ADMIN_PASSWORD / DEV_USER_USERNAME / DEV_USER_PASSWORD
   （默认 dev_admin / dev_user，密码 dev123456），与线上导入的账号不重名。
-- 不存在则创建；已存在则把密码重置为 .env 中的值，保证 `scripts/dev.py info` 显示的账号一定能登录。
+- 不存在则创建；已存在则把密码重置为 .env 中的值，保证 `scripts/task.py info` 显示的账号一定能登录。
 - 普通学员自动获得本地所有语言、所有资源类型第一层目录的学习权限，方便测试学员视角。
 - 只允许在 DEBUG=True 时运行，避免误在生产环境建出弱密码账号。
 """
