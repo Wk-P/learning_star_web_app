@@ -99,7 +99,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - [x] 9. scripts/dev.py（setup/migrate/info/dev/api/web/build/images/import-legacy），删除 Makefile 与旧脚本
 - [x] 10. scripts/deploy.py + deploy/（单服务 systemd、nginx、env 模板、cutover/rollback）
 - [x] 11. 删除 course/、topik/ 旧代码；README 更新；本地全流程验证
-- [ ] 12. 线上切换（需用户授权）
+- [x] 12. 线上切换（2026-11-16 完成：learning-star :8010 运行，player3 / course-backend 已停用保留，可 rollback）
 
 ## 进度日志
 
@@ -119,3 +119,4 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - 2026-11-16 scripts/dev.py 改名 scripts/task.py；`dev all|stop|restart|status|logs` 后台运行（pid/日志在 data/.dev/），控制台只输出地址与测试账号
 - 2026-11-16 deploy.py 加 main 守卫：上传代码的命令只能在 main、干净、与 origin/main 一致时执行；merge 分支由用户手动合并后删除
 - 2026-11-16 线上 .env 改为本地维护（deploy/.env.production，不进 git），deploy.py env / all / cutover 上传到 ENV_REMOTE；settings 支持 ENV_FILE；env-pull 拉取服务器现有 .env
+- 2026-11-16 切换完成。线上核对：用户 5、权限 28、科目 9、视频链接 52；媒体 videos 82G / audios 876M / files 122M 已在 data/media/languages/ko/；未登录 API 与媒体均 401。服务器 Python 改由 npmmirror 安装，依赖经清华源（uv export + uv pip install）
