@@ -71,8 +71,8 @@
     <main class="main" :class="{ 'main--wide': route.name === 'home' }">
       <RouterView v-slot="{ Component, route: r }">
         <Transition name="page" mode="out-in">
-          <!-- 课程栏目整体一个 key（CourseScope 内部自己切页）；其余按完整路径，切换语言时页面重新加载 -->
-          <component :is="Component" :key="r.meta.section === 'course' ? r.matched[1]?.path : r.path" />
+          <!-- 按完整路径做 key：每次换页（含课程栏目内、切换语言）都整体过渡、重新加载 -->
+          <component :is="Component" :key="r.path" />
         </Transition>
       </RouterView>
     </main>

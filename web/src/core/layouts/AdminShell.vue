@@ -1,6 +1,6 @@
 <template>
-  <!-- 管理后台固定使用深色工作台风格（原后台样式按深色设计） -->
   <div class="admin-shell" data-theme="dark">
+    <!-- 管理后台固定使用深色工作台风格（原后台样式按深色设计）。注释须在根元素内，否则成多根节点，页面过渡会卡成空白 -->
     <!-- sidebar -->
     <aside class="sidebar">
       <RouterLink to="/" class="sidebar-logo">
@@ -33,9 +33,9 @@
         <RouterLink :to="{ name: 'home' }" class="header-link">← 返回前台</RouterLink>
       </header>
       <main class="admin-content">
-        <RouterView v-slot="{ Component }">
+        <RouterView v-slot="{ Component, route: r }">
           <Transition name="page" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="r.path" />
           </Transition>
         </RouterView>
       </main>
