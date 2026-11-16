@@ -181,6 +181,16 @@ if [ -d backend ]; then mv backend backend.old; fi
 mv .staging/backend backend
 cp .staging/pyproject.toml .staging/uv.lock .staging/.python-version .
 rm -rf .staging backend.old
+# 项目的 Python（.python-version）。服务器在国内：先用 npmmirror（同步及时），
+# 再试服务器自己配置的镜像（nju/tuna 常缺新版本），最后才走 GitHub（国内慢）
+PY=$(cat .python-version)
+if ! "$UV" python find "$PY" >/dev/null 2>&1; then
+  for M in https://registry.npmmirror.com/-/binary/python-build-standalone "" \
+           https://github.com/astral-sh/python-build-standalone/releases/download; do
+    if [ -n "$M" ]; then UV_PYTHON_INSTALL_MIRROR="$M" "$UV" python install "$PY" && break
+    else "$UV" python install "$PY" && break; fi
+  done
+fi
 "$UV" sync --frozen --no-dev -q
 cd backend
 ../.venv/bin/python manage.py migrate --noinput
