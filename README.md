@@ -104,10 +104,9 @@ API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`
 systemd 服务 `learning-star`（gunicorn 127.0.0.1:8010），nginx 80 端口统一入口。
 部署永不覆盖服务器上的 `data/` 与 `.env`。
 
-部署上传的是本地工作区，所以 `api` / `web` / `nginx` / `all` / `cutover --yes` 只能在 `main` 分支执行，且须无未提交改动、与 `origin/main` 一致（脚本会检查）。
+部署上传的是本地工作区，所以 `api` / `web` / `nginx` / `all` 只能在 `main` 分支执行，且须无未提交改动、与 `origin/main` 一致（脚本会检查）。
 
-合并后的首次上线（一次性）：`uv run scripts/deploy.py cutover` 预览步骤，加 `--yes` 执行；
-出问题用 `uv run scripts/deploy.py rollback --yes` 回到合并前的两个旧服务。
+合并上线已于 2026-11-16 完成（过程与一次性的 cutover / rollback 脚本见 git 历史与 `_migration/PLAN.md`）。出问题时用 `data/backups/` 里的备份恢复数据库。
 
 ## 图片
 

@@ -2,7 +2,7 @@
 
     uv run scripts/deploy.py <命令>
 
-日常（合并切换完成后）：
+命令：
     check          只读检查：SSH、目录、服务状态、sudo
     api            部署后端：上传 backend/ 与依赖清单 → uv sync → migrate → collectstatic → 重启
     web            构建并部署前端
@@ -14,11 +14,7 @@
     nginx / all 会安装 systemd 定时器 learning-star-backup.timer：每天 03:30 备份，标签 auto，保留最近 14 份；
     api / all 上传代码前先备份一次，标签 predeploy，保留最近 10 份。
 
-一次性（course + topik 合并为统一后端）：
-    cutover        预览切换步骤；加 --yes 执行。旧服务停机时间约为导入数据 + 移动媒体目录（同盘 mv，秒级）
-    rollback       回到合并前的两个旧服务（加 --yes 执行）；切换后新产生的数据不会带回旧库
-
-上传代码的命令（api / web / nginx / all / cutover --yes）只允许在 main 分支执行，
+上传代码的命令（api / web / nginx / all）只允许在 main 分支执行，
 且工作区无未提交改动、与 origin/main 一致，保证线上运行的就是远端 main。
 
 服务器信息读取 deploy/.env（不进 git，模板 deploy/.env.example）。
@@ -26,7 +22,7 @@
 
 线上 .env：本地维护（deploy/.env 的 ENV_LOCAL，默认 deploy/.env.production，不进 git），
 由部署脚本送到服务器的 ENV_REMOTE（默认 APP_DIR/.env，权限 600）：
-    env            上传线上 .env 并重启后端（all、cutover 若本地有该文件也会自动上传）
+    env            上传线上 .env 并重启后端（all 若本地有该文件也会自动上传）
     env-pull       把服务器当前的 .env 下载到 ENV_LOCAL（首次建立本地副本用；已存在时加 --force 覆盖）
 """
 from __future__ import annotations
@@ -45,7 +41,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = Path(os.environ.get('DEPLOY_ENV') or ROOT / 'deploy' / '.env')
 SERVICE = 'learning-star'
-LEGACY_SERVICES = ('player3', 'course-backend')
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
@@ -88,8 +83,6 @@ DEFAULTS = {
     'APP_DIR': '{home}/learning_star',        # 统一后的部署目录
     'APP_PORT': '8010',                       # gunicorn 端口（与旧服务的 8000/8001 不冲突，便于回滚）
     'APP_USER': '{user}',                     # systemd 运行用户
-    'TOPIK_DIR': '{home}/player3',            # 合并前的旧目录（cutover / rollback 用）
-    'COURSE_DIR': '{home}/course_system',
     'ENV_LOCAL': 'deploy/.env.production',   # 本地的线上 .env（相对仓库根目录或绝对路径，不进 git）
     # ENV_REMOTE 默认 APP_DIR/.env，见 load_config
 }
@@ -322,7 +315,7 @@ def push_env_if_present(cfg) -> None:
 def require_merged(cfg) -> None:
     out = remote(cfg, '[ -f "$APP/.merged" ] && echo yes || echo no', capture=True, APP=cfg['APP_DIR'])
     if out.strip() != 'yes':
-        die('服务器还没有完成合并切换（缺少 .merged 标记）。先运行：uv run scripts/deploy.py cutover')
+        die('服务器上没有 .merged 标记，部署目录不是预期的状态，先用 check 查看')
 
 
 # ── 命令 ──────────────────────────────────────────────────────────────────────
@@ -330,10 +323,10 @@ def require_merged(cfg) -> None:
 def cmd_check(cfg, _args) -> None:
     remote(cfg, r'''
 echo "已连接 $(whoami)@$(hostname)"
-echo "  部署目录 $APP：$([ -d "$APP" ] && echo 存在 || echo 不存在)，合并标记：$([ -f "$APP/.merged" ] && echo 已切换 || echo 未切换)"
+echo "  部署目录 $APP：$([ -d "$APP" ] && echo 存在 || echo 不存在)"
 echo "  .env（$ENV_FILE）：$([ -f "$ENV_FILE" ] && echo 存在 || echo 缺少)"
 echo "  数据库：$([ -f "$APP/data/db.sqlite3" ] && du -h "$APP/data/db.sqlite3" | cut -f1 || echo 无)"
-for s in "$SERVICE" player3 course-backend nginx; do echo "  服务 $s=$(systemctl is-active $s 2>/dev/null || true)"; done
+for s in "$SERVICE" "$SERVICE-backup.timer" nginx; do echo "  服务 $s=$(systemctl is-active $s 2>/dev/null || true)"; done
 echo "  uv：$("$UV" --version 2>/dev/null || echo 未找到)"
 sudo -n true 2>/dev/null && echo '  sudo 免密可用' || echo '  sudo 需要密码（部署会失败）'
 ''', APP=cfg['APP_DIR'], SERVICE=SERVICE)
@@ -426,163 +419,10 @@ def cmd_backup(cfg, args) -> None:
     print(f'服务器：{path}\n本地：  {local}（{local.stat().st_size / 1024:.0f} KB）')
 
 
-# ── 一次性：合并切换 ──────────────────────────────────────────────────────────
-
-PREFLIGHT = r'''
-[ -f "$APP/.merged" ] && { echo '已经切换过（存在 .merged）。日常部署用 api / web / all' >&2; exit 1; }
-for f in "$TOPIK/backend/db.sqlite3" "$COURSE/backend/db.sqlite3" "$TOPIK/backend/.env.production"; do
-  [ -f "$f" ] || { echo "缺少 $f" >&2; exit 1; }
-done
-mkdir -p "$APP/data/media"
-# 媒体必须与新目录在同一文件系统，mv 才是瞬间完成的改名而不是复制 80G
-[ "$(stat -c %d "$TOPIK/backend/media")" = "$(stat -c %d "$APP/data/media")" ] || { echo '旧媒体目录与新数据目录不在同一文件系统' >&2; exit 1; }
-if [ -e "$APP/data/media/languages/ko" ]; then echo "$APP/data/media/languages/ko 已存在，请先确认其内容" >&2; exit 1; fi
-if [ -f "$APP/data/db.sqlite3" ]; then
-  mv "$APP/data/db.sqlite3" "$APP/data/db.sqlite3.aborted-$(date +%Y%m%d-%H%M%S)"
-  echo '  上次未完成的新数据库已改名保留'
-fi
-# 生成 .env：新的 SECRET_KEY；沿用旧 topik 的 JWT_SIGNING_KEY（已登录用户不掉线）与 ALLOWED_HOSTS
-if [ ! -f "$ENV_FILE" ]; then
-  mkdir -p "$(dirname "$ENV_FILE")"
-  get() { grep -s "^$1=" "$TOPIK/backend/.env.production" | tail -1 | cut -d= -f2-; }
-  jwt=$(get JWT_SIGNING_KEY); [ -n "$jwt" ] || jwt=$(get SECRET_KEY)
-  umask 077
-  {
-    echo 'DEBUG=False'
-    echo "SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
-    echo "JWT_SIGNING_KEY=$jwt"
-    echo "ALLOWED_HOSTS=$(get ALLOWED_HOSTS)"
-  } > "$ENV_FILE"
-  echo "  已生成 $ENV_FILE（SECRET_KEY 新生成，JWT_SIGNING_KEY 与 ALLOWED_HOSTS 沿用旧 topik）"
-fi
-echo "  磁盘剩余：$(df -h "$APP" | tail -1 | awk '{print $4}')"
-'''
-
-SWITCH = r'''
-L="$APP/data/legacy"
-fail() { echo; echo "✘ 切换在「$STEP」失败。旧服务已停止，请运行：uv run scripts/deploy.py rollback --yes" >&2; }
-trap fail ERR
-
-STEP='停止旧服务'; echo "▶ $STEP"
-sudo systemctl stop player3 course-backend
-
-STEP='旧数据快照'; echo "▶ $STEP"
-mkdir -p "$L"
-"$APP/.venv/bin/python" - "$TOPIK/backend/db.sqlite3" "$L/topik.sqlite3" "$COURSE/backend/db.sqlite3" "$L/course.sqlite3" <<'PY'
-import sqlite3, sys
-for src, dst in zip(sys.argv[1::2], sys.argv[2::2]):
-    s = sqlite3.connect(f'file:{src}?mode=ro', uri=True); d = sqlite3.connect(dst); s.backup(d); d.close(); s.close()
-PY
-rm -rf "$L/bilibili"; cp -a "$COURSE/backend/bilibili" "$L/bilibili"
-sudo cp /etc/nginx/conf.d/learning_star.conf "$L/nginx_learning_star.conf"
-
-STEP='导入旧数据'; echo "▶ $STEP"
-cd "$APP/backend"
-../.venv/bin/python manage.py import_legacy --topik "$L/topik.sqlite3" --course "$L/course.sqlite3" --bilibili "$L/bilibili" --apply
-
-STEP='移动媒体目录'; echo "▶ $STEP"
-K="$APP/data/media/languages/ko"; mkdir -p "$K"
-: > "$L/media_moves.tsv"
-for pair in videos:videos audios:audios pdfs:files; do
-  src="$TOPIK/backend/media/${pair%%:*}"; dst="$K/${pair##*:}"
-  if [ -d "$src" ]; then mv "$src" "$dst"; printf '%s\t%s\n' "$src" "$dst" >> "$L/media_moves.tsv"; echo "  $src → $dst"; fi
-done
-
-STEP='启动新后端'; echo "▶ $STEP"
-sudo systemctl enable --now "$SERVICE"
-sleep 3
-systemctl is-active "$SERVICE"
-code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api/languages/")
-[ "$code" = 401 ] || { echo "  健康检查：期望 401（需要登录），实际 $code" >&2; false; }
-echo "  健康检查通过"
-
-STEP='切换前端'; echo "▶ $STEP"
-cd "$APP/web"
-rm -rf dist.legacy
-if [ -d dist ]; then mv dist dist.legacy; fi
-mv dist.new dist
-
-STEP='切换 nginx'; echo "▶ $STEP"
-cd "$APP/.deploy"
-sudo cp learning_star_proxy.conf /etc/nginx/snippets/
-sudo cp learning_star.conf /etc/nginx/conf.d/learning_star.conf
-sudo nginx -t
-sudo systemctl reload nginx
-
-STEP='停用旧服务'; echo "▶ $STEP"
-sudo systemctl disable player3 course-backend
-date > "$APP/.merged"
-trap - ERR
-echo "✔ 切换完成"
-'''
-
-
-def cmd_cutover(cfg, args) -> None:
-    print(f'''合并切换计划（服务器 {cfg["SSH_HOST"]}）：
-  旧：{cfg["TOPIK_DIR"]}（player3 :8000）+ {cfg["COURSE_DIR"]}（course-backend :8001）
-  新：{cfg["APP_DIR"]}（{SERVICE} :{cfg["APP_PORT"]}），数据在 {cfg["APP_DIR"]}/data/
-
-  准备（不停机）：检查 → 生成 .env → 上传后端、uv sync、建新库 → 构建并上传前端（不上线）→ 安装 systemd 单元
-  切换（停机）：停旧服务 → 旧库快照到 data/legacy/ → import_legacy → mv 媒体到 data/media/languages/ko/
-               → 启动新后端并检查 → 换前端 → 换 nginx → 停用旧服务（不删除，可 rollback）''')
-    if '--yes' not in args:
-        print('\n这是预览。确认后执行：uv run scripts/deploy.py cutover --yes')
-        return
-    env = dict(APP=cfg['APP_DIR'], TOPIK=cfg['TOPIK_DIR'], COURSE=cfg['COURSE_DIR'], SERVICE=SERVICE, PORT=cfg['APP_PORT'])
-    push_env_if_present(cfg)
-    step('预检')(lambda: remote(cfg, PREFLIGHT, **env))()
-    push_code(cfg)
-    build_web(cfg)
-    push_web(cfg, live=False)
-    upload(cfg, f'{cfg["APP_DIR"]}/.deploy', deploy_items(cfg))
-    step('安装 systemd 单元')(lambda: remote(
-        cfg, 'sudo cp "$APP/.deploy/$SERVICE.service" /etc/systemd/system/ && sudo systemctl daemon-reload', **env))()
-    t0 = time.time()
-    remote(cfg, SWITCH, **env)
-    print(f'停机时长约 {time.time() - t0:.0f}s')
-
-
-ROLLBACK = r'''
-L="$APP/data/legacy"
-echo "▶ 停止新后端"
-sudo systemctl disable --now "$SERVICE" 2>/dev/null || true
-echo "▶ 媒体目录移回"
-if [ -f "$L/media_moves.tsv" ]; then
-  while IFS=$'\t' read -r src dst; do
-    [ -n "$src" ] || continue
-    if [ -d "$dst" ] && [ ! -e "$src" ]; then mv "$dst" "$src"; echo "  $dst → $src"; fi
-  done < "$L/media_moves.tsv"
-  mv "$L/media_moves.tsv" "$L/media_moves.tsv.rolledback-$(date +%Y%m%d-%H%M%S)"
-fi
-echo "▶ 恢复前端"
-cd "$APP/web"
-if [ -d dist.legacy ]; then rm -rf dist.failed; [ -d dist ] && mv dist dist.failed; mv dist.legacy dist; fi
-echo "▶ 恢复 nginx"
-if [ -f "$L/nginx_learning_star.conf" ]; then
-  sudo cp "$L/nginx_learning_star.conf" /etc/nginx/conf.d/learning_star.conf
-  sudo nginx -t && sudo systemctl reload nginx
-fi
-echo "▶ 启动旧服务"
-sudo systemctl enable --now player3 course-backend
-systemctl is-active player3 course-backend
-rm -f "$APP/.merged"
-echo "✔ 已回到合并前的状态（新数据库保留在 $APP/data/db.sqlite3）"
-'''
-
-
-def cmd_rollback(cfg, args) -> None:
-    if '--yes' not in args:
-        print('回滚：停止新后端、媒体移回旧目录、恢复旧前端与 nginx、启动 player3 / course-backend。\n'
-              '切换后在新站产生的数据（新用户、权限、课程修改）不会带回旧库。\n'
-              '确认后执行：uv run scripts/deploy.py rollback --yes')
-        return
-    remote(cfg, ROLLBACK, APP=cfg['APP_DIR'], SERVICE=SERVICE)
-
-
 # ── 只从 main 部署 ────────────────────────────────────────────────────────────
 # 部署上传的是本地工作区的文件，所以要求：在 main 分支、没有未提交改动、与 origin/main 完全一致。
 DEPLOY_BRANCH = 'main'
-SHIPS_CODE = {'api', 'web', 'nginx', 'all', 'cutover'}
+SHIPS_CODE = {'api', 'web', 'nginx', 'all'}
 
 
 def git(*args: str) -> str:
@@ -611,7 +451,7 @@ def require_main() -> None:
 
 COMMANDS = {
     'check': cmd_check, 'api': cmd_api, 'web': cmd_web, 'nginx': cmd_nginx, 'all': cmd_all,
-    'backup': cmd_backup, 'cutover': cmd_cutover, 'rollback': cmd_rollback,
+    'backup': cmd_backup,
     'env': cmd_env, 'env-pull': cmd_env_pull,
 }
 
@@ -628,7 +468,7 @@ def main() -> None:
     if not shutil.which('ssh'):
         die('缺少 ssh（Windows 10+ 自带 OpenSSH 客户端；或安装 Git for Windows）')
     cmd = sys.argv[1]
-    if cmd in SHIPS_CODE and (cmd != 'cutover' or '--yes' in sys.argv[2:]):
+    if cmd in SHIPS_CODE:
         require_main()
     cfg = load_config()
     t0 = time.time()
