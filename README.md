@@ -67,13 +67,15 @@ API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`
 | 只启动后端 / 前端 | `uv run scripts/dev.py api` / `web` |
 | 数据库迁移 | `uv run scripts/dev.py migrate` |
 | 访问地址与测试账号 | `uv run scripts/dev.py info` |
+| 创建 / 重置测试账号 | `uv run scripts/dev.py users` |
 | 任意 manage.py 命令 | `uv run scripts/dev.py manage <参数>` |
 | 构建前端 | `uv run scripts/dev.py build` |
 | 重新生成图片 | `uv run scripts/dev.py images` |
 | 导入线上数据快照 | `uv run scripts/dev.py import-legacy <备份目录> [--apply]` |
 
 `setup` 执行 `uv sync`、安装前端依赖、由 `.env.example` 生成 `.env`（本地开 DEBUG）、迁移数据库，
-并按 `.env` 的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 创建本地测试管理员（默认 `admin` / `change-me`）。
+并创建本地测试账号：管理员 `dev_admin`、学员 `dev_user`（密码默认都是 `dev123456`，见 `.env` 的 `DEV_*`）。
+测试账号与线上导入的账号不重名；`setup`、`migrate`、`users` 每次都会把它们的密码重置为 `.env` 中的值，学员自动拥有本地全部学习权限。
 前端 :5173 把 `/api`、`/media` 代理到后端 :8000。不带参数运行脚本会列出全部用法。
 
 ### 跨平台字符约定

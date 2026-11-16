@@ -2,8 +2,9 @@
 
     uv run scripts/dev.py <命令>
 
-    setup          首次：uv sync（根目录唯一 .venv）、安装前端依赖、生成 .env、迁移数据库、创建测试管理员
-    migrate        数据库迁移（拉取新代码后出现 unapplied migrations 提示时）
+    setup          首次：uv sync（根目录唯一 .venv）、安装前端依赖、生成 .env、迁移数据库、创建测试账号
+    migrate        数据库迁移（拉取新代码后出现 unapplied migrations 提示时），并确保测试账号可用
+    users          创建 / 重置本地测试账号（管理员 + 学员，密码以 .env 为准）
     info           显示本地访问地址与测试账号
     all            同时启动后端与前端，Ctrl-C 全部停止
     api            后端 :8000（backend/，Django）
@@ -82,19 +83,20 @@ def env_value(key: str, default: str) -> str:
 # ── 命令 ──────────────────────────────────────────────────────────────────────
 
 def cmd_info(_args) -> None:
-    user = env_value('ADMIN_USERNAME', 'admin')
+    # 默认值与 backend/accounts/management/commands/create_dev_users.py 一致
+    admin = env_value('DEV_ADMIN_USERNAME', 'dev_admin'), env_value('DEV_ADMIN_PASSWORD', 'dev123456')
+    user = env_value('DEV_USER_USERNAME', 'dev_user'), env_value('DEV_USER_PASSWORD', 'dev123456')
     print(f'''────────────────────────────────────────────────────────
  前端        http://localhost:5173
  登录页      http://localhost:5173/login
  管理后台    http://localhost:5173/admin
  后端 API    http://localhost:8000/api/
 
- 本地测试账号（管理员）
-   用户名    {user}
-   密码      {env_value('ADMIN_PASSWORD', 'change-me')}
-   来源      根目录 .env 的 ADMIN_USERNAME / ADMIN_PASSWORD
-   改密码    uv run scripts/dev.py manage changepassword {user}
-             （setup 只在账号不存在时创建，不会覆盖已有账号的密码）
+ 本地测试账号
+   管理员    {admin[0]:<16} 密码 {admin[1]}
+   学员      {user[0]:<16} 密码 {user[1]}（自动拥有本地全部学习权限）
+   来源      根目录 .env 的 DEV_ADMIN_* / DEV_USER_*
+   重置      uv run scripts/dev.py users（setup、migrate 时也会自动执行）
 ────────────────────────────────────────────────────────''')
 
 
@@ -108,8 +110,6 @@ def cmd_setup(_args) -> None:
         print('已由 .env.example 生成 .env（本地开发用，按需修改）')
     run([pnpm(), 'install'], cwd=WEB)
     cmd_migrate(None)
-    print('▶ 创建本地测试管理员')
-    manage('create_admin')
     print('\n✔ 完成。启动：uv run scripts/dev.py all')
     cmd_info(None)
 
@@ -117,6 +117,12 @@ def cmd_setup(_args) -> None:
 def cmd_migrate(_args) -> None:
     print('▶ 数据库迁移')
     manage('migrate')
+    cmd_users(None)
+
+
+def cmd_users(_args) -> None:
+    print('▶ 本地测试账号')
+    manage('create_dev_users')
 
 
 def cmd_api(_args) -> None:
@@ -151,6 +157,8 @@ def cmd_import_legacy(args: list[str]) -> None:
            '--course', str(src / 'db' / 'course.sqlite3'),
            '--bilibili', str(src / 'course' / 'bilibili'),
            *args[1:])
+    if '--apply' in args[1:]:
+        cmd_users(None)
 
 
 def _stop(procs: list[subprocess.Popen]) -> None:
@@ -188,6 +196,7 @@ def cmd_all(_args) -> None:
 COMMANDS = {
     'setup': cmd_setup,
     'migrate': cmd_migrate,
+    'users': cmd_users,
     'info': cmd_info,
     'all': cmd_all,
     'api': cmd_api,
