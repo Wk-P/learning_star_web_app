@@ -1,36 +1,44 @@
 # learning_star_web_app
 
-一个网站、一个账号，两个学习栏目：
+一个网站、一个账号、一个后端，两个学习栏目：
 
-- **韩语 TOPIK**：视频、听力音频、学习资料（原 [player3](https://github.com/Wk-P/player3)）
-- **课程**：按科目整理的 B 站课程、学习路线图、思维导图（原 [m22-Course-System](https://github.com/Wk-P/m22-Course-System)）
+- **语言学习**：语言分类 → 具体语言（如 东亚语言 → 韩语），每门语言有视频、听力音频、学习资料；分类与语言在管理后台增删改
+- **课程**：按科目整理的 B 站 / YouTube 课程链接、学习路线图、思维导图
+
+> 本仓库由原 topik（[player3](https://github.com/Wk-P/player3)）与 course（[m22-Course-System](https://github.com/Wk-P/m22-Course-System)）两个项目合并而来，合并记录见 [_migration/PLAN.md](_migration/PLAN.md)。
 
 ## 结构
 
 ```
-web/              唯一的前端（Vue 3 + Vite）
-  src/core/       整站框架：门户首页、统一登录、个人中心、管理后台、主题、登录状态
-  src/topik/      韩语栏目页面与管理页
-  src/course/     课程栏目页面与管理页（原样式套件构建时自动加 .mod-course 作用域）
-  src/shared/     设计系统：动效 motion.css、滚动入场 v-reveal、静态资源 asset()
-topik/backend/    Django：账号与登录（统一账号以此为准）、韩语资源、学习权限
-course/backend/   Django：科目、B 站链接、路线图；信任 topik 签发的登录令牌
+pyproject.toml uv.lock .python-version   唯一的 Python 环境（Python 3.13 / Django 6）→ 根目录 .venv
+.env.example      后端环境变量模板（本地与服务器都用根目录 .env，不进 git）
+backend/          Django 后端
+  config/         settings、urls
+  accounts/       统一账号：登录、注册、改密码、显示名称、用户管理
+  languages/      语言学习：分类、语言、媒体扫描、学习权限、受保护媒体 /media/
+  courses/        课程：科目、视频链接
+data/             数据库 db.sqlite3 与 media/（不进 git，部署不覆盖）
+web/              前端（Vue 3 + Vite）
+  src/core/       整站框架：门户首页、登录、我的账户、管理后台、统一 API 封装
+  src/language/   语言学习页面与管理页
+  src/course/     课程页面与管理页（原样式套件构建时自动加 .mod-course 作用域）
+  src/shared/     设计系统：动效、v-reveal、asset()
 images/src/       图片原图；web/public 下的图片由 scripts/optimize_images.py 生成
-deploy/           nginx、systemd、环境变量模板（deploy/.env 为服务器信息）
-scripts/          开发与部署脚本，按平台分开，两边命令一一对应
-  unix/           macOS / Linux：dev.sh、deploy.sh（根目录 Makefile 转发到这里）
-  windows/        Windows：dev.ps1、deploy.ps1（部署用 Git Bash 运行 unix/deploy.sh，不需要 WSL）
-  optimize_images.py  图片生成（跨平台，uv run）
+scripts/          dev.py（本地开发）、deploy.py（部署），Windows / macOS / Linux 通用
+deploy/           nginx、systemd 模板；deploy/.env 为服务器信息（不进 git）
 ```
 
-### 统一登录
+**Python 只有一个环境**：根目录 `.venv`，由 `uv sync` 按 `uv.lock` 生成。改依赖在根目录用 `uv add` / `uv remove`，不要手动 pip install，不要在子目录另建环境。
 
-- 登录、注册、改密码、用户管理都在 topik 后端。
-- 两个后端配置相同的 `JWT_SIGNING_KEY`；course 后端用它校验 topik 签发的令牌，
-  按用户名对应到本地用户（首次访问自动创建），管理员身份跟随 topik 的 `is_staff`。
-- 原 course 站的账号用 `manage.py import_course_users <course db>` 并入 topik：
-  只在 course 存在的用户原样保留密码哈希（原密码可直接登录），同名用户以 topik 为准并列出供核对。
-  默认只预览，加 `--apply` 写入。
+### 媒体目录
+
+```
+data/media/languages/<语言标识>/videos/<目录...>/<视频名>/playlist.m3u8 (+ ts)
+data/media/languages/<语言标识>/audios/<目录...>/<音频名>.mp3
+data/media/languages/<语言标识>/files/<目录...>/<资料名>.pdf|.xlsx|.hwp|...
+```
+
+第一层目录就是「学习权限」中可授权的单位。管理员不受限；普通用户只看到被授权的目录。
 
 ### 网址
 
@@ -38,73 +46,64 @@ scripts/          开发与部署脚本，按平台分开，两边命令一一�
 |---|---|
 | `/` | 门户首页 |
 | `/login` | 登录 / 注册 |
-| `/topik`、`/topik/video`、`/topik/audio`、`/topik/file` | 韩语栏目 |
+| `/language` | 全部语言（按分类） |
+| `/language/:lang`、`/language/:lang/video` `audio` `file` | 某门语言的概览与资源，如 `/language/ko` |
 | `/course`、`/course/path` | 课程栏目 |
 | `/me` | 我的账户 |
-| `/admin/...` | 管理后台（两个栏目合并） |
+| `/admin/...` | 管理后台 |
 
-原站的旧网址（`/user/video`、`/home`、`/admin/login` 等）会自动跳到新地址；原课程站的 8080 端口整体跳到 80。
+旧网址（`/topik/*`、`/user/*`、`/home`、`/admin/login` 等）自动跳到新地址；原课程站的 8080 端口整体跳到 80。
+
+API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`courses/`。
 
 ## 本地开发
 
-依赖：[uv](https://docs.astral.sh/uv/)、Node `^20.19` 或 `>=22.12`、pnpm。
+依赖：[uv](https://docs.astral.sh/uv/)、Node `^20.19` 或 `>=22.12`、pnpm。所有平台命令相同：
 
-| 操作 | macOS / Linux | Windows（PowerShell） |
-|---|---|---|
-| 首次准备 | `make setup` | `.\scripts\windows\dev.ps1 setup` |
-| 数据库迁移（拉取新代码后出现 unapplied migrations 提示时） | `make migrate` | `.\scripts\windows\dev.ps1 migrate` |
-| 查看访问地址与本地测试账号 | `make info` | `.\scripts\windows\dev.ps1 info` |
-| 同时启动三个服务 | `make dev` | `.\scripts\windows\dev.ps1 all` |
-| topik 后端 :8000 | `make dev-topik-api` | `.\scripts\windows\dev.ps1 topik-api` |
-| course 后端 :8001 | `make dev-course-api` | `.\scripts\windows\dev.ps1 course-api` |
-| 前端 :5173 | `make dev-web` | `.\scripts\windows\dev.ps1 web` |
-| 构建前端 | `make build` | `.\scripts\windows\dev.ps1 build` |
-| 重新生成图片 | `make images` | `.\scripts\windows\dev.ps1 images` |
+| 操作 | 命令 |
+|---|---|
+| 首次准备 | `uv run scripts/dev.py setup` |
+| 同时启动后端 :8000 与前端 :5173 | `uv run scripts/dev.py all` |
+| 只启动后端 / 前端 | `uv run scripts/dev.py api` / `web` |
+| 数据库迁移 | `uv run scripts/dev.py migrate` |
+| 访问地址与测试账号 | `uv run scripts/dev.py info` |
+| 任意 manage.py 命令 | `uv run scripts/dev.py manage <参数>` |
+| 构建前端 | `uv run scripts/dev.py build` |
+| 重新生成图片 | `uv run scripts/dev.py images` |
+| 导入线上数据快照 | `uv run scripts/dev.py import-legacy <备份目录> [--apply]` |
 
-`make` 只是转发到 `./scripts/unix/dev.sh`，不带参数运行脚本会列出全部用法。
-前端 :5173 会把 `/api/topik`、`/api/course`、`/media` 代理到两个后端。
-
-两个后端都是 uv 项目（`pyproject.toml` + `uv.lock`），各自一个 `.venv`：topik 为 Python 3.10 / Django 5.2，
-course 为 Python 3.13 / Django 6，与生产环境一致。改依赖用 `uv add` / `uv remove`（在 `topik/` 或 `course/` 下），不要手动 pip install。
-`setup` 对两个后端执行 `uv sync`、安装前端依赖，在缺少时由模板生成 `topik/backend/.env.develop`（按需修改），迁移两个后端的本地 SQLite 数据库，
-并按 `.env.develop` 的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 创建本地测试管理员（默认 `admin` / `change-me`）。
-course 后端信任 topik 的登录令牌，首次访问时自动建立对应用户，无需单独创建。
-开发环境两个后端默认使用同一个开发用 `JWT_SIGNING_KEY`，无需额外配置。
-**任何 `.env*` 文件都不要提交到 git。**
+`setup` 执行 `uv sync`、安装前端依赖、由 `.env.example` 生成 `.env`（本地开 DEBUG）、迁移数据库，
+并按 `.env` 的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 创建本地测试管理员（默认 `admin` / `change-me`）。
+前端 :5173 把 `/api`、`/media` 代理到后端 :8000。不带参数运行脚本会列出全部用法。
 
 ### 跨平台字符约定
 
 | | 约定 | 由谁保证 |
 |---|---|---|
-| 换行 | 一律 LF；只有 `.ps1` / `.cmd` / `.bat` 用 CRLF | `.gitattributes`（检出时生效，不受 Windows `core.autocrlf` 影响） |
-| 文件编码 | 一律 UTF-8 无 BOM；`.ps1` 为 UTF-8 **带 BOM**（PowerShell 5.1 否则按 GBK 读中文） | `.editorconfig`、`.vscode/settings.json` |
-| Python 读写文件 | 必须写 `encoding='utf-8'`（Windows 上 `open()` 默认是 GBK） | 代码 + 开发脚本设置 `PYTHONUTF8=1` 兜底 |
-
-服务器是 Linux，以上约定保证在 Windows / macOS 上开发、部署出去的文件与在 Linux 上完全相同。
+| 换行 | 一律 LF | `.gitattributes`（检出时生效，不受 Windows `core.autocrlf` 影响） |
+| 文件编码 | 一律 UTF-8 无 BOM | `.editorconfig`、`.vscode/settings.json` |
+| Python 读写文件 | 必须写 `encoding='utf-8'`（Windows 上 `open()` 默认是 GBK） | 代码 + `dev.py` 设置 `PYTHONUTF8=1` 兜底 |
 
 ## 部署
 
-先把 `deploy/.env.example` 复制为 `deploy/.env`，填写服务器的 SSH 地址、端口、私钥路径和部署目录（`deploy/.env` 不进 git）。
+先把 `deploy/.env.example` 复制为 `deploy/.env`，填写 SSH 地址、端口、私钥路径和服务器主目录。
+部署只需要本机有 Python（经 uv）与 `ssh`（Windows 10+ 自带），不需要 rsync、Git Bash 或 WSL。
 
-首次部署前，在服务器上按 `deploy/env/` 的模板准备两个后端的环境变量文件，
-`JWT_SIGNING_KEY` 两边必须相同，且必须是新生成的随机值（旧的生产密钥曾泄露在 git 历史中，已作废）。
-生成：`python3 -c "import secrets; print(secrets.token_urlsafe(50))"`（Windows 上用 `python`）
+| 操作 | 命令 |
+|---|---|
+| 只读检查 | `uv run scripts/deploy.py check` |
+| 部署后端 / 前端 / nginx 与 systemd | `uv run scripts/deploy.py api` / `web` / `nginx` |
+| 全部 | `uv run scripts/deploy.py all` |
+| 备份线上数据库（并下载到本地） | `uv run scripts/deploy.py backup` |
 
-| 操作 | macOS / Linux | Windows（PowerShell） |
-|---|---|---|
-| 预览 course 账号并入 topik | `./scripts/unix/deploy.sh users` | `.\scripts\windows\deploy.ps1 users` |
-| 写入 | `./scripts/unix/deploy.sh users --apply` | `.\scripts\windows\deploy.ps1 users --apply` |
-| 全部：topik → course → 前端 → nginx | `make deploy-all` | `.\scripts\windows\deploy.ps1 all` |
-| 单项 | `make deploy-web` 等 | `.\scripts\windows\deploy.ps1 web` 等 |
+服务器布局：`~/learning_star/`（`backend/`、`.venv/`、`web/dist/`、`data/`、`.env`、`log/`），
+systemd 服务 `learning-star`（gunicorn 127.0.0.1:8010），nginx 80 端口统一入口。
+部署永不覆盖服务器上的 `data/` 与 `.env`。
 
-B 站链接数据单独同步：`pull-data` 拉到本地修改，再用 `push-data` 推回（服务器在此期间被改过会中止）。
-
-Windows 部署需要 [Git for Windows](https://git-scm.com/download/win)：`deploy.ps1` 用它自带的 bash 运行同一份 `deploy.sh`。
-本机没有 `rsync` 时（Windows 默认如此）脚本自动改用 tar + ssh 整包上传，排除规则与删除保护和 rsync 一致。
-
-部署永不覆盖服务器上的 `media/`、`db.sqlite3`、`.env*`、`staticfiles/` 与课程站 `bilibili/` 数据。
+合并后的首次上线（一次性）：`uv run scripts/deploy.py cutover` 预览步骤，加 `--yes` 执行；
+出问题用 `uv run scripts/deploy.py rollback --yes` 回到合并前的两个旧服务。
 
 ## 图片
 
-原图放在 `images/src/`，运行 `make images`（Windows：`.\scripts\windows\dev.ps1 images`）生成 `web/public` 下的 WebP（多尺寸）与 PNG 兜底。
+原图放在 `images/src/`，运行 `uv run scripts/dev.py images` 生成 `web/public` 下的 WebP（多尺寸）与 PNG 兜底。
 模板里引用 `public/` 资源用 `asset('img/x.webp')`，不要写死路径。

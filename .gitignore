@@ -16,4 +16,4 @@ deploy/.env
 _migration/backups/
 # 统一后端：根目录环境变量与数据目录（数据库、媒体）
 /.env
-backend/data/
+/data/

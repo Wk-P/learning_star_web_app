@@ -71,8 +71,8 @@ TEMPLATES = [
     },
 ]
 
-# ── 数据目录：数据库与媒体文件都在这里，部署永不覆盖 ──────────────────────────
-DATA_DIR = Path(os.environ.get('DATA_DIR') or BASE_DIR / 'data')
+# ── 数据目录：数据库与媒体文件都在这里（与代码分开），部署永不覆盖 ──────────────
+DATA_DIR = Path(os.environ.get('DATA_DIR') or ROOT_DIR / 'data')
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASES = {
@@ -94,7 +94,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = ROOT_DIR / 'staticfiles'
 
 # 媒体：MEDIA_ROOT/languages/<语言 slug>/{videos,audios,files}/<顶层目录>/...
 # 只能经 /media/ 受保护视图访问（校验登录与目录权限）

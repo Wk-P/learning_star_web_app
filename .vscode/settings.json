@@ -4,6 +4,8 @@
   "files.autoGuessEncoding": false,
   "files.eol": "\n",
   "files.insertFinalNewline": true,
+  // 全仓库唯一的 Python 环境（uv sync 生成）
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
   "[powershell]": {
     "files.encoding": "utf8bom",
     "files.eol": "\r\n"

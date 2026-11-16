@@ -44,7 +44,7 @@ backend/
   accounts/        统一用户（含 display_name）、登录/刷新令牌、注册、改密码、用户管理
   languages/       LanguageCategory、Language、MediaPermission(+language)、视频/音频/资料扫描、受保护媒体
   courses/         Subject、CourseVideo（原 txt）、等级/标签/平台识别
-  data/            db.sqlite3、media/（不进 git）
+data/              db.sqlite3、media/（不进 git，部署不覆盖）
 web/               前端：src/topik → src/language；路由 /language/...
 scripts/           dev.py、deploy.py、optimize_images.py（全部 Python，跨平台）
 deploy/            nginx、systemd（单服务 learning-star）、env 模板
@@ -52,7 +52,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 
 ### 媒体目录
 
-`data/media/languages/<语言slug>/{videos,audios,files}/<root_dir>/...`
+`data/media/languages/<语言slug>/{videos,audios,files}/<root_dir>/...`（data/ 在项目根目录）
 （原 pdfs 改名 files，因已支持 xlsx/hwp）。URL：`/media/languages/ko/videos/...`。
 
 ### API（统一前缀 /api/）
@@ -82,7 +82,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 
 1. 停 player3、course-backend；再做一次数据库快照
 2. 部署新代码到 ~/learning_star，`uv sync`，migrate，`import_legacy --apply`
-3. `mv ~/player3/backend/media/{videos,audios,pdfs}` → `~/learning_star/backend/data/media/languages/ko/{videos,audios,files}`
+3. `mv ~/player3/backend/media/{videos,audios,pdfs}` → `~/learning_star/data/media/languages/ko/{videos,audios,files}`
 4. 安装 learning-star.service 与新 nginx 配置，启动；禁用旧两个服务（不删除）
 5. 回滚：停新服务、把 media mv 回去、启用旧服务、恢复旧 nginx 配置
 
@@ -96,9 +96,9 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - [x] 6. 移植 API：账号/登录、语言资源扫描与受保护媒体、权限、课程科目与视频
 - [x] 7. `import_legacy` 命令，用备份快照本地验证
 - [x] 8. 前端：API 层统一、topik → language、路由与文案、管理后台语言管理（type-check / build 通过；浏览器实测在第 11 步）
-- [ ] 9. scripts/dev.py（setup/migrate/info/dev/api/web/build/images/import-legacy），删除 Makefile 与旧脚本
-- [ ] 10. scripts/deploy.py + deploy/（单服务 systemd、nginx、env 模板、cutover/rollback）
-- [ ] 11. 删除 course/、topik/ 旧代码；README 更新；本地全流程验证
+- [x] 9. scripts/dev.py（setup/migrate/info/dev/api/web/build/images/import-legacy），删除 Makefile 与旧脚本
+- [x] 10. scripts/deploy.py + deploy/（单服务 systemd、nginx、env 模板、cutover/rollback）
+- [x] 11. 删除 course/、topik/ 旧代码；README 更新；本地全流程验证
 - [ ] 12. 线上切换（需用户授权）
 
 ## 进度日志
@@ -112,3 +112,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
   新页面 LanguageHubView（/language）、admin LanguagesView（分类与语言）、ResourcesView（替代旧视频/音频/PDF 三页）；
   PermissionsView 按语言；UsersView 移到 core/views/AdminUsersView；学习记录旧 URL 自动迁移到 /media/languages/ko/...；
   课程视频改用数据库 id 修改/删除（index 仅为前端位置序号）。
+- 2026-11-16 完成 9–11：scripts/dev.py、scripts/deploy.py（ssh + tarfile，Windows 原生可用）；删除 Makefile、scripts/unix|windows、course/、topik/；
+  数据目录改为项目根 data/，STATIC_ROOT 为根 staticfiles/；新服务 learning-star 端口 8010（与旧 8000/8001 并存，便于回滚）。
+  旧目录的本地开发数据移到 _migration/backups/local_pre_merge/。deploy.py check 实测通过。
+  下一步 12：用户授权后执行 `uv run scripts/deploy.py cutover --yes`；之后验证线上并考虑合并 merge → main。
