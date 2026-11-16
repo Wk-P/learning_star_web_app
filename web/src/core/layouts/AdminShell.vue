@@ -33,9 +33,9 @@
         <RouterLink :to="{ name: 'home' }" class="header-link">← 返回前台</RouterLink>
       </header>
       <main class="admin-content">
-        <RouterView v-slot="{ Component }">
+        <RouterView v-slot="{ Component, route: r }">
           <Transition name="page" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="r.path" />
           </Transition>
         </RouterView>
       </main>
