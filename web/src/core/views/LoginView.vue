@@ -13,7 +13,7 @@
         </span>
       </div>
 
-      <p class="intro">一个账号即可使用韩语 TOPIK 与课程两个栏目</p>
+      <p class="intro">一个账号即可使用语言学习与课程两个栏目</p>
 
       <!-- tab switcher -->
       <div class="tabs">
@@ -89,7 +89,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/core/stores/auth'
-import { api } from '@/topik/api'
+import { accountsApi as api } from '@/core/api/accounts'
 import { BRAND, BRAND_CN } from '@/core/brand'
 import AppIcon from '@/core/components/AppIcon.vue'
 

@@ -21,8 +21,8 @@
     <template v-else>
       <div v-for="u in users" :key="u.id" class="user-row card">
         <div class="user-info">
-          <span class="user-name">{{ u.username }}</span>
-          <span class="user-email">{{ u.email }}</span>
+          <span class="user-name">{{ u.username }}<template v-if="u.display_name">（{{ u.display_name }}）</template></span>
+          <span class="user-email">{{ u.email ?? '' }}</span>
           <span class="badge" :class="u.is_staff ? 'badge-admin' : 'badge-user'">
             {{ u.is_staff ? '管理员' : '普通用户' }}
           </span>
@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { api, type UserItem } from '@/topik/api'
+import { accountsApi as api, type UserItem } from '@/core/api/accounts'
 
 const users = ref<UserItem[]>([])
 const loadingUsers = ref(true)
@@ -53,7 +53,7 @@ onMounted(() => loadUsers())
 
 async function loadUsers() {
   loadingUsers.value = true
-  users.value = await api.getUserList()
+  users.value = await api.listUsers()
   loadingUsers.value = false
 }
 

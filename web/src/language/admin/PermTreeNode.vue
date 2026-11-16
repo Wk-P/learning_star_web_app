@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { TreeNode } from '@/topik/api'
+import type { TreeNode } from '@/language/api'
 
 const props = defineProps<{
   node: TreeNode

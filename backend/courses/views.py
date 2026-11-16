@@ -1,7 +1,7 @@
 import re
 
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Count, Max
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -61,7 +61,8 @@ class AdminSubjectListView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        return Response(SubjectSerializer(Subject.objects.all(), many=True).data)
+        subjects = Subject.objects.annotate(video_count=Count('videos'))
+        return Response([{**SubjectSerializer(s).data, 'video_count': s.video_count} for s in subjects])
 
     def post(self, request):
         s = SubjectSerializer(data=request.data)

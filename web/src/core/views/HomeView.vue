@@ -7,15 +7,15 @@
       </div>
       <span class="badge enter" style="--d: 0">{{ BRAND_TAGLINE }}</span>
       <h1 class="title enter" style="--d: 1">
-        一个账号，<span class="grad">学韩语，也学课程</span>
+        一个账号，<span class="grad">学语言，也学课程</span>
       </h1>
       <p class="sub enter" style="--d: 2">
-        韩语 TOPIK 的视频、听力与资料，加上数学、英语、计算机的精选课程，都在这里。
+        各门语言的视频、听力与资料，加上数学、英语、计算机的精选课程，都在这里。
       </p>
       <div class="cta enter" style="--d: 3">
         <template v-if="auth.isLoggedIn">
           <RouterLink v-if="lastSection" :to="lastSection.to" class="btn-primary press">
-            继续学习{{ lastSection.short }}
+            继续学习{{ lastSection.label }}
             <AppIcon name="arrow" :size="18" :stroke="2.2" />
           </RouterLink>
           <a href="#sections" class="btn-ghost press">选择栏目</a>
@@ -41,7 +41,7 @@
           <h2 class="section-name">{{ s.label }}</h2>
           <p class="section-desc">{{ s.desc }}</p>
           <ul class="section-tabs">
-            <li v-for="t in s.tabs" :key="t.to">{{ t.label }}</li>
+            <li v-for="f in s.features" :key="f">{{ f }}</li>
           </ul>
           <span class="section-go">进入{{ s.short }} <AppIcon name="arrow" :size="16" :stroke="2.2" /></span>
         </div>
@@ -63,27 +63,36 @@ import { BRAND_TAGLINE, SECTIONS } from '@/core/brand'
 import AppIcon from '@/core/components/AppIcon.vue'
 import { asset, srcset } from '@shared/asset'
 import { onImgLoad } from '@shared/reveal'
-import { getHistory } from '@/topik/composables/useHistory'
+import { getHistory } from '@/language/composables/useHistory'
+import { useLanguageStore } from '@/language/stores/languages'
 
 const auth = useAuthStore()
 
 const cards = [
   {
-    ...SECTIONS.topik,
+    ...SECTIONS.language,
+    features: ['视频课程', '听力音频', '学习资料'],
     img: [['img/home-hero-540.webp', 540], ['img/home-hero.webp', 1080]] as Array<[string, number]>,
     fallback: 'img/home-hero.png',
-    alt: '韩语学习笔记插画',
+    alt: '语言学习笔记插画',
   },
   {
     ...SECTIONS.course,
+    features: SECTIONS.course.tabs.map((t) => t.label),
     img: [['mindmaps/cs-720.webp', 720], ['mindmaps/cs.webp', 1448]] as Array<[string, number]>,
     fallback: 'mindmaps/cs.png',
     alt: '计算机学习体系思维导图',
   },
 ]
 
-// 有韩语学习记录就优先推荐继续韩语，否则推荐课程
-const lastSection = computed(() => (getHistory().length ? SECTIONS.topik : SECTIONS.course))
+// 有语言学习记录就推荐继续最近学的那门语言，否则推荐课程
+const languages = useLanguageStore()
+if (auth.isLoggedIn) languages.load().catch(() => {})
+const lastSection = computed(() => {
+  const last = getHistory()[0]
+  if (!last) return { label: SECTIONS.course.short, to: SECTIONS.course.to }
+  return { label: languages.bySlug(last.lang)?.name ?? SECTIONS.language.short, to: `/language/${encodeURIComponent(last.lang)}` }
+})
 </script>
 
 <style scoped>

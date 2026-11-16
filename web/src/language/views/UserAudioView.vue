@@ -20,9 +20,9 @@
     </div>
     <EmptyState v-else-if="error" icon="shield" title="加载失败" :desc="error" />
     <EmptyState
-      v-else-if="subCategories.length === 0 && currentFiles.length === 0"
-      icon="file"
-      title="这里还没有可访问的文件"
+      v-else-if="subCategories.length === 0 && currentAudios.length === 0"
+      icon="audio"
+      title="这里还没有可访问的音频"
       desc="如果你刚注册，可能需要管理员为你开通学习权限，开通后刷新页面即可看到。"
     />
 
@@ -35,20 +35,20 @@
           class="category-card"
           @click="currentPath = [...currentPath, cat]"
         >
-          <span class="card-icon">📁</span>
+          <span class="card-icon">🎵</span>
           <span class="card-name">{{ cat }}</span>
         </button>
       </div>
     </Transition>
 
-    <!-- file list -->
+    <!-- audio list -->
     <Transition name="fade-up" mode="out-in">
-      <ul v-if="currentFiles.length > 0" class="item-list" :key="'file-' + currentPath.join('/')">
-        <li v-for="file in currentFiles" :key="file.url" class="item">
-          <a class="item-btn" :href="file.url" target="_blank" download @click="addHistory({ type: 'file', title: file.title, url: file.url, path: file.path })">
-            <span class="item-icon"><AppIcon name="download" :size="16" /></span>
-            <span class="item-title">{{ file.title }}</span>
-            <span class="item-ext">{{ file.ext }}</span>
+      <ul v-if="currentAudios.length > 0" class="item-list" :key="'aud-' + currentPath.join('/')">
+        <li v-for="audio in currentAudios" :key="audio.url" class="item">
+          <a class="item-btn" :href="audio.url" target="_blank" @click="addHistory({ lang: slug, type: 'audio', title: audio.title, url: audio.url, path: audio.path })">
+            <span class="item-icon"><AppIcon name="audio" :size="16" /></span>
+            <span class="item-title">{{ audio.title }}</span>
+            <span class="item-ext">mp3</span>
           </a>
         </li>
       </ul>
@@ -61,18 +61,20 @@
 import EmptyState from '@/core/components/EmptyState.vue'
 import AppIcon from '@/core/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
-import { api, fileExt } from '@/topik/api'
-import { addHistory } from '@/topik/composables/useHistory'
+import { languageApi } from '@/language/api'
+import { addHistory } from '@/language/composables/useHistory'
+import { useCurrentLanguage } from '@/language/composables/useCurrentLanguage'
 
-interface PdfFile {
+const { slug } = useCurrentLanguage()
+
+interface Audio {
   id: number
   url: string
   title: string
-  ext: string
   path: string[]
 }
 
-const files = ref<PdfFile[]>([])
+const audios = ref<Audio[]>([])
 const currentPath = ref<string[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -81,14 +83,13 @@ onMounted(async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.getPdfList()
-    files.value = data.flatMap((folder) =>
-      folder.pdfs.map((p) => ({
-        id: p.id,
-        title: p.title,
-        url: p.url,
-        ext: p.ext || fileExt(p.url),
-        path: [...folder.path, p.title],
+    const data = await languageApi.media(slug.value, 'audio')
+    audios.value = data.flatMap((folder) =>
+      folder.items.map((a) => ({
+        id: a.id,
+        title: a.title,
+        url: a.url,
+        path: [...folder.path, a.title],
       }))
     )
   } catch {
@@ -100,16 +101,16 @@ onMounted(async () => {
 
 const subCategories = computed(() => {
   const depth = currentPath.value.length
-  const matched = files.value.filter((f) =>
-    f.path.length > depth + 1 &&
-    currentPath.value.every((seg, i) => f.path[i] === seg)
+  const matched = audios.value.filter((a) =>
+    a.path.length > depth + 1 &&
+    currentPath.value.every((seg, i) => a.path[i] === seg)
   )
-  return [...new Set(matched.map((f) => f.path[depth]).filter((s): s is string => s !== undefined))]
+  return [...new Set(matched.map((a) => a.path[depth]).filter((s): s is string => s !== undefined))]
 })
 
-const currentFiles = computed(() =>
-  files.value.filter((f) => {
-    const parent = f.path.slice(0, -1)
+const currentAudios = computed(() =>
+  audios.value.filter((a) => {
+    const parent = a.path.slice(0, -1)
     return (
       parent.length === currentPath.value.length &&
       currentPath.value.every((seg, i) => parent[i] === seg)
@@ -119,6 +120,13 @@ const currentFiles = computed(() =>
 </script>
 
 <style scoped>
+.content-view {
+  padding: 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -149,13 +157,6 @@ const currentFiles = computed(() =>
 .card-icon { font-size: 1.5rem; line-height: 1; }
 .card-name { font-size: 0.9rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-all; }
 .card-count { font-size: 0.75rem; color: var(--text-muted); }
-
-.content-view {
-  padding: 1.25rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
 
 .breadcrumb {
   display: flex;
@@ -243,10 +244,10 @@ const currentFiles = computed(() =>
 }
 
 .item-icon {
-  color: var(--accent);
-  font-size: 0.95rem;
+  color: var(--secondary);
+  font-size: 0.85rem;
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
 .item-title {

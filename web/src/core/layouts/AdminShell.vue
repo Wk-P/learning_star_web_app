@@ -59,11 +59,10 @@ const groups = [
     { to: '/admin', label: '概览', icon: 'grid' },
     { to: '/admin/users', label: '用户', icon: 'user' },
   ] },
-  { title: SECTIONS.topik.label, color: SECTIONS.topik.color, items: [
-    { to: '/admin/topik/video', label: '视频', icon: 'video' },
-    { to: '/admin/topik/audio', label: '音频', icon: 'audio' },
-    { to: '/admin/topik/pdf', label: '资料', icon: 'file' },
-    { to: '/admin/permissions', label: '学习权限', icon: 'shield' },
+  { title: SECTIONS.language.label, color: SECTIONS.language.color, items: [
+    { to: '/admin/language/languages', label: '分类与语言', icon: 'globe' },
+    { to: '/admin/language/resources', label: '学习资源', icon: 'video' },
+    { to: '/admin/language/permissions', label: '学习权限', icon: 'shield' },
   ] },
   { title: SECTIONS.course.label, color: SECTIONS.course.color, items: [
     { to: '/admin/course/subjects', label: '科目与视频', icon: 'book' },

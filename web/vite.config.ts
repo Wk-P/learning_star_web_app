@@ -7,9 +7,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // @ts-expect-error -- postcss-prefix-selector 没有可用的类型声明
 import prefixSelector from 'postcss-prefix-selector'
 
-// 本地开发：两个 Django 后端分别跑在 8000 / 8001（见根目录 Makefile）
-const TOPIK_DEV = 'http://localhost:8000'
-const COURSE_DEV = 'http://localhost:8001'
+// 本地开发：后端（backend/，Django）跑在 8000，见 scripts/dev.py
+const API_DEV = 'http://localhost:8000'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -33,9 +32,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/topik': { target: TOPIK_DEV, changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/topik/, '/api') },
-      '/api/course': { target: COURSE_DEV, changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/course/, '/api') },
-      '/media': { target: TOPIK_DEV, changeOrigin: true },
+      '/api': { target: API_DEV, changeOrigin: true },
+      '/media': { target: API_DEV, changeOrigin: true },
     },
   },
   resolve: {

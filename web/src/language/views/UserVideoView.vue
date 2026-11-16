@@ -71,9 +71,12 @@
 import EmptyState from '@/core/components/EmptyState.vue'
 import AppIcon from '@/core/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
-import VideoPlayer from '@/topik/components/VideoPlayer.vue'
-import { api } from '@/topik/api'
-import { addHistory } from '@/topik/composables/useHistory'
+import VideoPlayer from '@/language/components/VideoPlayer.vue'
+import { languageApi } from '@/language/api'
+import { addHistory } from '@/language/composables/useHistory'
+import { useCurrentLanguage } from '@/language/composables/useCurrentLanguage'
+
+const { slug } = useCurrentLanguage()
 
 interface Video {
   id: number
@@ -92,9 +95,9 @@ onMounted(async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.getVideoList()
+    const data = await languageApi.media(slug.value, 'video')
     videos.value = data.flatMap((folder) =>
-      folder.videos.map((v) => ({
+      folder.items.map((v) => ({
         id: v.id,
         title: v.title,
         url: v.url,
@@ -129,7 +132,7 @@ const currentVideos = computed(() =>
 
 function playVideo(video: Video) {
   activeVideo.value = video
-  addHistory({ type: 'video', title: video.title, url: video.url, path: video.path })
+  addHistory({ lang: slug.value, type: 'video', title: video.title, url: video.url, path: video.path })
 }
 </script>
 

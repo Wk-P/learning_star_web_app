@@ -22,6 +22,9 @@ export interface Subject {
 export type VideoLevel = '入门' | '基础' | '进阶'
 
 export interface BilibiliVideo {
+  /** 数据库 id：修改、删除用它 */
+  id: number
+  /** 在本科目列表中的位置（从 0 开始，前端补上，用于显示序号） */
   index: number
   title: string
   url: string

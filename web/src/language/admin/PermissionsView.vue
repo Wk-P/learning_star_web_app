@@ -40,6 +40,9 @@
         <div class="perm-header">
           <span class="perm-user">{{ selectedUser.username }}</span>
           <span class="perm-subtitle">的访问权限</span>
+          <el-select v-model="activeLang" class="lang-select" size="small" placeholder="选择语言">
+            <el-option v-for="l in store.languages" :key="l.slug" :label="`${l.name}（${langCount(l.slug)}）`" :value="l.slug" />
+          </el-select>
           <div class="header-actions">
             <Transition name="fade">
               <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
@@ -60,7 +63,7 @@
               :class="{ active: activeTab === tab.key }"
               @click="activeTab = tab.key"
             >
-              <span class="tab-icon">{{ tab.icon }}</span>
+              <AppIcon :name="tab.icon" :size="14" class="tab-icon" />
               {{ tab.label }}
               <span class="tab-count" :class="{ 'count-active': permCount(tab.key) > 0 }">
                 {{ permCount(tab.key) }}
@@ -84,7 +87,7 @@
               v-for="node in currentTree"
               :key="node.path"
               :node="node"
-              :perms="perms[activeTab]"
+              :perms="currentPerms"
               :depth="0"
               @toggle="togglePath"
             />
@@ -118,73 +121,80 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { api, type UserItem, type TreeNode } from '@/topik/api'
+import AppIcon from '@/core/components/AppIcon.vue'
+import { accountsApi } from '@/core/api/accounts'
+import type { UserItem } from '@/core/api/accounts'
+import { languageApi, MEDIA_KINDS, emptyKindDirs, type MediaKind, type PermissionMap, type TreeNode } from '@/language/api'
+import { useLanguageStore } from '@/language/stores/languages'
 import TreeNodeRow from './PermTreeNode.vue'
 
-type MediaKey = 'video' | 'audio' | 'pdf'
-
-const tabs = [
-  { key: 'video' as MediaKey, label: '视频', icon: '▶' },
-  { key: 'audio' as MediaKey, label: '音频', icon: '♫' },
-  { key: 'pdf'   as MediaKey, label: '文件', icon: '↓' },
-]
+const store = useLanguageStore()
+const tabs = MEDIA_KINDS
 
 const users = ref<UserItem[]>([])
 const loadingUsers = ref(true)
 const search = ref('')
 const selectedUser = ref<UserItem | null>(null)
-const activeTab = ref<MediaKey>('video')
+const activeLang = ref('')
+const activeTab = ref<MediaKind>('video')
 const userPermCounts = reactive<Record<number, number>>({})
 
-const tree = reactive<{ video: TreeNode[]; audio: TreeNode[]; pdf: TreeNode[] }>({
-  video: [], audio: [], pdf: [],
-})
-const perms = reactive<{ video: string[]; audio: string[]; pdf: string[] }>({
-  video: [], audio: [], pdf: [],
-})
+/** {语言: {类型: 目录树}} */
+const tree = ref<Record<string, Record<MediaKind, TreeNode[]>>>({})
+/** 当前用户的全部权限（所有语言），保存时整体提交 */
+const perms = ref<PermissionMap>({})
 const loadingPerms = ref(false)
 const saving = ref(false)
 const saveMsg = ref('')
 
+const total = (m: PermissionMap) => Object.values(m).reduce((s, k) => s + k.video.length + k.audio.length + k.file.length, 0)
+
 const filteredUsers = computed(() =>
   users.value.filter(u => u.username.toLowerCase().includes(search.value.toLowerCase()))
 )
-const currentTree = computed(() => tree[activeTab.value])
-const sortedPerms = computed(() => [...perms[activeTab.value]].sort())
+const currentTree = computed(() => tree.value[activeLang.value]?.[activeTab.value] ?? [])
+const currentPerms = computed(() => perms.value[activeLang.value]?.[activeTab.value] ?? [])
+const sortedPerms = computed(() => [...currentPerms.value].sort())
 
-function permCount(key: MediaKey) {
-  return perms[key].length
+function permCount(key: MediaKind) {
+  return perms.value[activeLang.value]?.[key].length ?? 0
+}
+function langCount(slug: string) {
+  const k = perms.value[slug]
+  return k ? k.video.length + k.audio.length + k.file.length : 0
 }
 
-function flatPaths(nodes: TreeNode[]): string[] {
-  return nodes.flatMap(n => [n.path, ...flatPaths(n.children)])
+function setCurrent(list: string[]) {
+  const lang = activeLang.value
+  if (!lang) return
+  perms.value[lang] ??= emptyKindDirs()
+  perms.value[lang][activeTab.value] = list
 }
 
 function selectAll() {
-  // grant all root-level paths (covers children via prefix matching)
-  perms[activeTab.value] = currentTree.value.map(n => n.path)
+  // 授权全部第一层目录（前缀匹配覆盖子目录）
+  setCurrent(currentTree.value.map(n => n.path))
 }
 
 function clearAll() {
-  perms[activeTab.value] = []
+  setCurrent([])
 }
 
 onMounted(async () => {
   const [userList, treeData] = await Promise.all([
-    api.getUserList(),
-    api.getMediaTree(),
+    accountsApi.listUsers(),
+    languageApi.permissionTree(),
+    store.reload(),
   ])
   users.value = userList
   loadingUsers.value = false
-  tree.video = treeData.video
-  tree.audio = treeData.audio
-  tree.pdf   = treeData.pdf
+  tree.value = treeData
+  activeLang.value = store.languages[0]?.slug ?? ''
 
-  // load perm counts for all non-staff users
+  // 侧栏显示每个普通用户的权限数
   await Promise.all(
     userList.filter(u => !u.is_staff).map(async u => {
-      const p = await api.getUserPermissions(u.id)
-      userPermCounts[u.id] = p.video.length + p.audio.length + p.pdf.length
+      userPermCounts[u.id] = total(await languageApi.userPermissions(u.id))
     })
   )
 })
@@ -192,22 +202,16 @@ onMounted(async () => {
 async function selectUser(u: UserItem) {
   selectedUser.value = u
   loadingPerms.value = true
-  const p = await api.getUserPermissions(u.id)
-  perms.video = [...p.video]
-  perms.audio = [...p.audio]
-  perms.pdf   = [...p.pdf]
+  perms.value = await languageApi.userPermissions(u.id)
   loadingPerms.value = false
 }
 
 function togglePath(path: string) {
-  const list = perms[activeTab.value]
-  const idx = list.indexOf(path)
-  if (idx >= 0) {
-    perms[activeTab.value] = list.filter(p => !p.startsWith(path + '/') && p !== path)
+  const list = currentPerms.value
+  if (list.includes(path)) {
+    setCurrent(list.filter(p => !p.startsWith(path + '/') && p !== path))
   } else {
-    const filtered = list.filter(p => !p.startsWith(path + '/'))
-    filtered.push(path)
-    perms[activeTab.value] = filtered
+    setCurrent([...list.filter(p => !p.startsWith(path + '/')), path])
   }
 }
 
@@ -215,19 +219,16 @@ async function savePerms() {
   if (!selectedUser.value) return
   saving.value = true
   saveMsg.value = ''
-  await api.setUserPermissions(selectedUser.value.id, {
-    video: perms.video,
-    audio: perms.audio,
-    pdf:   perms.pdf,
-  })
-  // update count in sidebar
-  if (selectedUser.value) {
-    userPermCounts[selectedUser.value.id] =
-      perms.video.length + perms.audio.length + perms.pdf.length
+  try {
+    perms.value = await languageApi.setUserPermissions(selectedUser.value.id, perms.value)
+    userPermCounts[selectedUser.value.id] = total(perms.value)
+    saveMsg.value = '已保存 ✓'
+  } catch {
+    saveMsg.value = '保存失败'
+  } finally {
+    saving.value = false
+    setTimeout(() => { saveMsg.value = '' }, 2000)
   }
-  saving.value = false
-  saveMsg.value = '已保存 ✓'
-  setTimeout(() => { saveMsg.value = '' }, 2000)
 }
 </script>
 
@@ -238,6 +239,8 @@ async function savePerms() {
   height: calc(100dvh - 60px - 3rem);
   min-height: 0;
 }
+
+.lang-select { width: 150px; margin-left: 0.75rem; }
 
 /* ── user panel ── */
 .user-panel {

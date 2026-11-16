@@ -5,13 +5,17 @@ import { BRAND, BRAND_CN } from '@/core/brand'
 const AppShell = () => import('@/core/layouts/AppShell.vue')
 const CourseScope = () => import('@/core/layouts/CourseScope.vue')
 
-// 旧网址（原 topik 站 /user/*、原 course 站 /home 等）→ 新网址，书签与分享链接继续有效
+// 旧网址 → 新网址，书签与分享链接继续有效。合并前只有韩语，旧的语言栏目网址都指向 ko
 const legacy: RouteRecordRaw[] = [
-  { path: '/user', redirect: '/topik' },
-  { path: '/user/dashboard', redirect: '/topik' },
-  { path: '/user/video', redirect: '/topik/video' },
-  { path: '/user/audio', redirect: '/topik/audio' },
-  { path: '/user/file', redirect: '/topik/file' },
+  { path: '/topik', redirect: '/language/ko' },
+  { path: '/topik/video', redirect: '/language/ko/video' },
+  { path: '/topik/audio', redirect: '/language/ko/audio' },
+  { path: '/topik/file', redirect: '/language/ko/file' },
+  { path: '/user', redirect: '/language/ko' },
+  { path: '/user/dashboard', redirect: '/language/ko' },
+  { path: '/user/video', redirect: '/language/ko/video' },
+  { path: '/user/audio', redirect: '/language/ko/audio' },
+  { path: '/user/file', redirect: '/language/ko/file' },
   { path: '/user/account', redirect: '/me' },
   { path: '/user/profile', redirect: '/me' },
   { path: '/home', redirect: '/course' },
@@ -21,9 +25,11 @@ const legacy: RouteRecordRaw[] = [
   { path: '/course/mindmap', redirect: '/course/path' },
   { path: '/admin/login', redirect: (to) => ({ path: '/login', query: { redirect: '/admin', ...to.query } }) },
   { path: '/admin/home', redirect: '/admin' },
-  { path: '/admin/video', redirect: '/admin/topik/video' },
-  { path: '/admin/audio', redirect: '/admin/topik/audio' },
-  { path: '/admin/pdf', redirect: '/admin/topik/pdf' },
+  { path: '/admin/video', redirect: '/admin/language/resources' },
+  { path: '/admin/audio', redirect: '/admin/language/resources' },
+  { path: '/admin/pdf', redirect: '/admin/language/resources' },
+  { path: '/admin/topik/:kind', redirect: '/admin/language/resources' },
+  { path: '/admin/permissions', redirect: '/admin/language/permissions' },
   { path: '/admin/subjects', redirect: '/admin/course/subjects' },
   { path: '/admin/roadmap', redirect: '/admin' },
   { path: '/admin/course/roadmap', redirect: '/admin' },
@@ -45,11 +51,18 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: () => import('@/core/views/HomeView.vue') },
 
-        // ── 韩语 TOPIK ──────────────────────────────────────────
-        { path: 'topik',       name: 'topik',       component: () => import('@/topik/views/DashboardView.vue'),    meta: { title: '韩语', section: 'topik', requiresAuth: true } },
-        { path: 'topik/video', name: 'topik-video', component: () => import('@/topik/views/UserVideoView.vue'),    meta: { title: '视频', section: 'topik', requiresAuth: true } },
-        { path: 'topik/audio', name: 'topik-audio', component: () => import('@/topik/views/UserAudioView.vue'),    meta: { title: '音频', section: 'topik', requiresAuth: true } },
-        { path: 'topik/file',  name: 'topik-file',  component: () => import('@/topik/views/FileDownloadView.vue'), meta: { title: '资料', section: 'topik', requiresAuth: true } },
+        // ── 语言学习：分类 → 语言 → 视频 / 音频 / 资料 ──────────
+        {
+          path: 'language',
+          meta: { section: 'language', requiresAuth: true },
+          children: [
+            { path: '',            name: 'language',       component: () => import('@/language/views/LanguageHubView.vue'),  meta: { title: '语言学习' } },
+            { path: ':lang',       name: 'language-home',  component: () => import('@/language/views/DashboardView.vue'),    meta: { title: '概览' } },
+            { path: ':lang/video', name: 'language-video', component: () => import('@/language/views/UserVideoView.vue'),    meta: { title: '视频' } },
+            { path: ':lang/audio', name: 'language-audio', component: () => import('@/language/views/UserAudioView.vue'),    meta: { title: '音频' } },
+            { path: ':lang/file',  name: 'language-file',  component: () => import('@/language/views/FileDownloadView.vue'), meta: { title: '资料' } },
+          ],
+        },
 
         // ── 课程 ────────────────────────────────────────────────
         {
@@ -66,18 +79,17 @@ const router = createRouter({
       ],
     },
 
-    // ── 管理后台（两个栏目合在一起） ─────────────────────────────
+    // ── 管理后台 ─────────────────────────────────────────────────
     {
       path: '/admin',
       component: () => import('@/core/layouts/AdminShell.vue'),
       meta: { requiresAdmin: true },
       children: [
-        { path: '',                 name: 'admin',              component: () => import('@/core/views/AdminDashboardView.vue'), meta: { title: '概览' } },
-        { path: 'users',            name: 'admin-users',        component: () => import('@/topik/admin/UsersView.vue'),          meta: { title: '用户管理' } },
-        { path: 'permissions',      name: 'admin-permissions',  component: () => import('@/topik/admin/PermissionsView.vue'),    meta: { title: '韩语 · 权限管理' } },
-        { path: 'topik/video',      name: 'admin-topik-video',  component: () => import('@/topik/admin/VideoView.vue'),          meta: { title: '韩语 · 视频' } },
-        { path: 'topik/audio',      name: 'admin-topik-audio',  component: () => import('@/topik/admin/AudioView.vue'),          meta: { title: '韩语 · 音频' } },
-        { path: 'topik/pdf',        name: 'admin-topik-pdf',    component: () => import('@/topik/admin/PdfView.vue'),            meta: { title: '韩语 · 资料' } },
+        { path: '',                     name: 'admin',                    component: () => import('@/core/views/AdminDashboardView.vue'),     meta: { title: '概览' } },
+        { path: 'users',                name: 'admin-users',              component: () => import('@/core/views/AdminUsersView.vue'),         meta: { title: '用户管理' } },
+        { path: 'language/languages',   name: 'admin-language-languages', component: () => import('@/language/admin/LanguagesView.vue'),      meta: { title: '语言学习 · 分类与语言' } },
+        { path: 'language/resources',   name: 'admin-language-resources', component: () => import('@/language/admin/ResourcesView.vue'),      meta: { title: '语言学习 · 学习资源' } },
+        { path: 'language/permissions', name: 'admin-language-perms',     component: () => import('@/language/admin/PermissionsView.vue'),    meta: { title: '语言学习 · 学习权限' } },
         {
           path: 'course',
           component: CourseScope,

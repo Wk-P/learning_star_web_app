@@ -56,10 +56,10 @@
       <!-- 栏目内二级导航 -->
       <nav v-if="section" class="subnav" :aria-label="`${section.label}导航`">
         <div class="subnav-inner">
-          <span class="subnav-title">{{ section.label }}</span>
+          <span class="subnav-title">{{ section.label }}<template v-if="currentLanguage"> · {{ currentLanguage.name }}</template></span>
           <div class="subnav-tabs">
             <RouterLink
-              v-for="t in section.tabs" :key="t.to" :to="t.to"
+              v-for="t in tabs" :key="t.to" :to="t.to"
               class="subnav-link" :class="{ active: isActiveTab(t) }"
             >{{ t.label }}</RouterLink>
           </div>
@@ -71,7 +71,8 @@
     <main class="main" :class="{ 'main--wide': route.name === 'home' }">
       <RouterView v-slot="{ Component, route: r }">
         <Transition name="page" mode="out-in">
-          <component :is="Component" :key="r.matched[1]?.path ?? r.path" />
+          <!-- 课程栏目整体一个 key（CourseScope 内部自己切页）；其余按完整路径，切换语言时页面重新加载 -->
+          <component :is="Component" :key="r.meta.section === 'course' ? r.matched[1]?.path : r.path" />
         </Transition>
       </RouterView>
     </main>
@@ -101,6 +102,7 @@ import { useThemeStore } from '@/core/stores/theme'
 import { BRAND, BRAND_CN, SECTIONS, type Section, type SectionKey } from '@/core/brand'
 import AppIcon from '@/core/components/AppIcon.vue'
 import AppFooter from '@/core/components/AppFooter.vue'
+import { useLanguageStore } from '@/language/stores/languages'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,6 +114,16 @@ const section = computed<Section | null>(() => {
   const key = route.matched.map((r) => r.meta.section).find(Boolean) as SectionKey | undefined
   return key ? SECTIONS[key] : null
 })
+
+// 语言学习：进入具体语言后，二级导航的 :lang 换成当前语言；在「全部语言」页只显示不含 :lang 的标签
+const languages = useLanguageStore()
+const langParam = computed(() => (typeof route.params.lang === 'string' ? route.params.lang : ''))
+const currentLanguage = computed(() => (langParam.value ? languages.bySlug(langParam.value) : undefined))
+watch(langParam, (slug) => { if (slug && auth.isLoggedIn) languages.load().catch(() => {}) }, { immediate: true })
+
+const tabs = computed(() => (section.value?.tabs ?? [])
+  .filter((t) => langParam.value || !t.to.includes(':lang'))
+  .map((t) => ({ ...t, to: t.to.replace(':lang', encodeURIComponent(langParam.value)) })))
 
 function isActiveTab(t: Section['tabs'][number]) {
   return t.exact ? route.path === t.to || route.path === `${t.to}/` : route.path.startsWith(t.to)
@@ -132,6 +144,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 
 function logout() {
   auth.clearTokens()
+  languages.clear()
   router.push({ name: 'home' })
 }
 </script>

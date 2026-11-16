@@ -95,7 +95,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - [x] 5. 新建 backend/ 单一 Django 项目：config、accounts、languages、courses（模型 + 迁移）
 - [x] 6. 移植 API：账号/登录、语言资源扫描与受保护媒体、权限、课程科目与视频
 - [x] 7. `import_legacy` 命令，用备份快照本地验证
-- [ ] 8. 前端：API 层统一、topik → language、路由与文案、管理后台语言管理
+- [x] 8. 前端：API 层统一、topik → language、路由与文案、管理后台语言管理（type-check / build 通过；浏览器实测在第 11 步）
 - [ ] 9. scripts/dev.py（setup/migrate/info/dev/api/web/build/images/import-legacy），删除 Makefile 与旧脚本
 - [ ] 10. scripts/deploy.py + deploy/（单服务 systemd、nginx、env 模板、cutover/rollback）
 - [ ] 11. 删除 course/、topik/ 旧代码；README 更新；本地全流程验证
@@ -108,3 +108,7 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
   冒烟测试 `_migration/tools/smoke_backend.py`（需先 import_legacy；运行：`.venv/Scripts/python -W ignore _migration/tools/smoke_backend.py backend`）。
   修复：受保护媒体可被 `有权目录/../无权目录` 绕过（旧代码同样存在）。
   本地开发用根目录 `.env`（DEBUG=True 等，不进 git）；数据在 backend/data/。
+- 2026-11-16 完成 8：web/src/topik → web/src/language；core/api/{http,accounts}.ts 统一 fetch 封装；语言 store + useCurrentLanguage；
+  新页面 LanguageHubView（/language）、admin LanguagesView（分类与语言）、ResourcesView（替代旧视频/音频/PDF 三页）；
+  PermissionsView 按语言；UsersView 移到 core/views/AdminUsersView；学习记录旧 URL 自动迁移到 /media/languages/ko/...；
+  课程视频改用数据库 id 修改/删除（index 仅为前端位置序号）。

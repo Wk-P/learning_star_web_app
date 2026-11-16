@@ -1,7 +1,7 @@
 /**
- * public/ 下静态资源的 URL。生产环境站点挂在 /topik/、/course/ 子路径下，
+ * public/ 下静态资源的 URL。站点若部署在子路径下（vite base），
  * 模板里写死的 "/img/x.webp" 会丢掉前缀，统一经过这里拼接 base。
- *   asset('img/logo-96.webp')  →  '/course/img/logo-96.webp'
+ *   asset('img/logo-96.webp')  →  BASE_URL + 'img/logo-96.webp'
  */
 export function asset(path: string): string {
   return import.meta.env.BASE_URL + path.replace(/^\//, '')

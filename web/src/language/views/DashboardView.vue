@@ -8,7 +8,11 @@
         <span class="welcome-name">{{ auth.isAdmin ? '同学' : (auth.username || '同学') }}</span>
         <span class="welcome-emoji">👋</span>
       </div>
-      <p class="welcome-sub">{{ history.length ? '接着上次的内容继续吧' : '选一个开始今天的学习吧' }}</p>
+      <p class="welcome-sub">
+        <template v-if="language">{{ language.name }}<template v-if="language.native_name">（{{ language.native_name }}）</template> · </template>
+        {{ history.length ? '接着上次的内容继续吧' : '选一个开始今天的学习吧' }}
+      </p>
+      <p v-if="notFound" class="welcome-sub">没有找到这个语言，<RouterLink :to="{ name: 'language' }">返回全部语言</RouterLink></p>
     </section>
 
     <!-- 2. 快捷入口 -->
@@ -33,7 +37,7 @@
         <AppIcon name="clock" :size="28" :stroke="1.5" />
         <p>还没有学习记录</p>
         <span>看过的视频、听过的音频会出现在这里，方便下次继续</span>
-        <RouterLink :to="{ name: 'topik-video' }" class="empty-cta press">去看第一个视频</RouterLink>
+        <RouterLink :to="to('language-video')" class="empty-cta press">去看第一个视频</RouterLink>
       </div>
       <ul v-else class="recent-list">
         <li v-for="(item, i) in history" :key="item.url + item.ts" v-reveal="i" class="recent-item">
@@ -51,7 +55,7 @@
           >打开</a>
           <RouterLink
             v-else
-            :to="{ name: 'topik-video' }"
+            :to="to('language-video')"
             class="recent-action"
           >播放</RouterLink>
         </li>
@@ -64,16 +68,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/core/stores/auth'
-import { getHistory, type HistoryItem } from '@/topik/composables/useHistory'
+import { getHistory, type HistoryItem } from '@/language/composables/useHistory'
+import { useCurrentLanguage } from '@/language/composables/useCurrentLanguage'
 import AppIcon from '@/core/components/AppIcon.vue'
 
 const auth = useAuthStore()
 const history = ref<HistoryItem[]>([])
 
+const { slug, language, notFound, to } = useCurrentLanguage()
+
 const quickLinks = [
-  { to: { name: 'topik-video' }, icon: 'video', name: '视频课程', desc: '在线观看课程视频', color: '#5ad8cf' },
-  { to: { name: 'topik-audio' }, icon: 'audio', name: '听力音频', desc: 'MP3 在线收听', color: '#6f9be8' },
-  { to: { name: 'topik-file' },  icon: 'file',  name: '学习资料', desc: 'PDF 资料下载', color: '#fb923c' },
+  { to: to('language-video'), icon: 'video', name: '视频课程', desc: '在线观看课程视频', color: '#5ad8cf' },
+  { to: to('language-audio'), icon: 'audio', name: '听力音频', desc: 'MP3 在线收听', color: '#6f9be8' },
+  { to: to('language-file'),  icon: 'file',  name: '学习资料', desc: 'PDF、表格等资料下载', color: '#fb923c' },
 ] as const
 
 const greeting = (() => {
@@ -103,7 +110,7 @@ function relativeTime(ts: number): string {
 }
 
 onMounted(() => {
-  history.value = getHistory().slice(0, 10)
+  history.value = getHistory(slug.value).slice(0, 10)
 })
 </script>
 
