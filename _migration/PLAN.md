@@ -122,3 +122,4 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - 2026-11-16 切换完成。线上核对：用户 5、权限 28、科目 9、视频链接 52；媒体 videos 82G / audios 876M / files 122M 已在 data/media/languages/ko/；未登录 API 与媒体均 401。服务器 Python 改由 npmmirror 安装，依赖经清华源（uv export + uv pip install）
 - 2026-11-16 停用 player2（xet-server :3000，无 nginx 转发、30 天无请求；disable，文件保留）。切换后立即备份 data/backups/learning-star-20261116-111848-post-cutover.tar.gz（本地副本 data/remote-backups/）。新增 manage.py backup_db 与 systemd 定时器 learning-star-backup.timer（每天 03:30，auto 保留 14）；api/all 部署前自动备份（predeploy 保留 10）；部署写入 DEPLOYED 记录代码版本
 - 2026-11-16 用户已删除旧目录（player3 / course_system / player2）；deploy.py 移除一次性的 cutover / rollback
+- 2026-11-16 取消学习权限：登录用户可看全部已启用语言的资料；删除权限接口与后台「学习权限」页；MediaPermission 表与数据保留不用。新增 英语(en)/欧美语言，上传新托福 1449 个文件到 data/media/languages/en/

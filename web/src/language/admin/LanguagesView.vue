@@ -169,7 +169,7 @@ async function saveLanguage() {
 async function removeLanguage(l: Language) {
   try {
     await ElMessageBox.confirm(
-      `删除语言「${l.name}」？相关的学习权限会一并删除；服务器上的媒体文件（media/languages/${l.slug}/）保留不动。`,
+      `删除语言「${l.name}」？服务器上的媒体文件（media/languages/${l.slug}/）保留不动。`,
       '确认', { type: 'warning' },
     )
   } catch { return }

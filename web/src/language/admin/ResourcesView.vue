@@ -12,7 +12,7 @@
 
     <p v-if="slug" class="dir-hint">
       服务器目录：<code>media/languages/{{ slug }}/{{ KIND_DIR[kind] }}/</code>
-      —— 第一层子目录即「学习权限」里可授权的目录。{{ KIND_HINT[kind] }}
+      —— 登录用户都能看到这里的全部内容。{{ KIND_HINT[kind] }}
     </p>
 
     <div v-if="!store.languages.length" class="empty-hint">还没有语言，请先在「分类与语言」中添加</div>

@@ -13,7 +13,7 @@ from django.conf import settings
 
 from config.utils import natural_key
 
-from .models import Language, MediaPermission
+from .models import Language
 
 # 「资料」只提供下载，不在线预览，所以不限于 PDF
 DOC_EXTENSIONS = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.hwp', '.hwpx'}
@@ -49,7 +49,7 @@ def _iter_items(kind: str, root: Path):
 
 
 def scan(language: Language, kind: str) -> list[dict]:
-    """全部文件夹（不过滤权限）：[{id, path: [...], items: [{id, title, url, ext}]}]"""
+    """全部文件夹：[{id, path: [...], items: [{id, title, url, ext}]}]"""
     key = (language.slug, kind)
     hit = _cache.get(key)
     if hit and time.monotonic() - hit[0] < _CACHE_SECONDS:
@@ -77,27 +77,9 @@ def scan(language: Language, kind: str) -> list[dict]:
     return result
 
 
-def allowed_dirs(user, language: Language, kind: str) -> set[str] | None:
-    """None 表示不受限（管理员）。"""
-    if user.is_staff:
-        return None
-    return set(MediaPermission.objects.filter(user=user, language=language, media_type=kind)
-               .values_list('root_dir', flat=True))
-
-
-def path_allowed(path: list[str] | tuple, allowed: set[str] | None) -> bool:
-    if allowed is None:
-        return True
-    for ap in allowed:
-        parts = ap.split('/')
-        if list(path[:len(parts)]) == parts:
-            return True
-    return False
-
-
 def list_for_user(user, language: Language, kind: str) -> list[dict]:
-    allowed = allowed_dirs(user, language, kind)
-    return [f for f in scan(language, kind) if path_allowed(f['path'], allowed)]
+    """登录用户可见全部资料（不再按目录开通权限）。"""
+    return scan(language, kind)
 
 
 def build_tree(path_lists: list[list[str]]) -> list[dict]:

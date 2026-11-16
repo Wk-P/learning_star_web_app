@@ -108,7 +108,7 @@ def cmd_info(_args) -> None:
 
  本地测试账号
    管理员    {admin[0]:<16} 密码 {admin[1]}
-   学员      {user[0]:<16} 密码 {user[1]}（自动拥有本地全部学习权限）
+   学员      {user[0]:<16} 密码 {user[1]}
    来源      根目录 .env 的 DEV_ADMIN_* / DEV_USER_*
    重置      uv run scripts/task.py users（setup、migrate 时也会自动执行）
 ────────────────────────────────────────────────────────''')

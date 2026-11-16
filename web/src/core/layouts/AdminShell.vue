@@ -62,7 +62,6 @@ const groups = [
   { title: SECTIONS.language.label, color: SECTIONS.language.color, items: [
     { to: '/admin/language/languages', label: '分类与语言', icon: 'globe' },
     { to: '/admin/language/resources', label: '学习资源', icon: 'video' },
-    { to: '/admin/language/permissions', label: '学习权限', icon: 'shield' },
   ] },
   { title: SECTIONS.course.label, color: SECTIONS.course.color, items: [
     { to: '/admin/course/subjects', label: '科目与视频', icon: 'book' },

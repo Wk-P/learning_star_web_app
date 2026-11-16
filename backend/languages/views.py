@@ -13,8 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
-from .models import MEDIA_KINDS, Language, LanguageCategory, MediaPermission
-from .services import build_tree, list_for_user, path_allowed, scan
+from .models import MEDIA_KINDS, Language, LanguageCategory
+from .services import list_for_user
 
 User = get_user_model()
 KIND_BY_DIR = {v: k for k, v in MEDIA_KINDS.items()}
@@ -57,7 +57,7 @@ class CategoryTreeView(APIView):
 
 
 class LanguageMediaView(APIView):
-    """GET /api/languages/<slug>/<kind>/ — 当前用户可见的文件夹与条目。"""
+    """GET /api/languages/<slug>/<kind>/ — 该语言的全部文件夹与条目（登录即可）。"""
 
     def get(self, request, slug: str, kind: str):
         if kind not in MEDIA_KINDS:
@@ -66,19 +66,6 @@ class LanguageMediaView(APIView):
         if not language:
             return Response({'detail': '语言不存在'}, status=status.HTTP_404_NOT_FOUND)
         return Response(list_for_user(request.user, language, kind))
-
-
-def _perms_of(user_id: int) -> dict:
-    """{slug: {video: [...], audio: [...], file: [...]}}"""
-    out: dict = {}
-    for p in MediaPermission.objects.filter(user_id=user_id).select_related('language'):
-        out.setdefault(p.language.slug, {k: [] for k in MEDIA_KINDS})[p.media_type].append(p.root_dir)
-    return out
-
-
-class MyPermissionsView(APIView):
-    def get(self, request):
-        return Response(_perms_of(request.user.id))
 
 
 # ── 管理员：分类与语言 ────────────────────────────────────────────────────────
@@ -159,50 +146,6 @@ class AdminLanguageDetailView(_CrudView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ── 管理员：权限 ──────────────────────────────────────────────────────────────
-
-class PermissionTreeView(APIView):
-    """GET /api/languages/permissions/tree/ — {slug: {video: 树, audio: 树, file: 树}}"""
-    permission_classes = [IsAdminUser]
-
-    def get(self, request):
-        return Response({
-            lang.slug: {kind: build_tree([f['path'] for f in scan(lang, kind)]) for kind in MEDIA_KINDS}
-            for lang in Language.objects.all()
-        })
-
-
-class UserPermissionsView(APIView):
-    """GET / PUT /api/languages/permissions/users/<id>/ — 整体读取 / 替换某用户的全部目录权限。"""
-    permission_classes = [IsAdminUser]
-
-    def get(self, request, user_id: int):
-        if not User.objects.filter(pk=user_id).exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(_perms_of(user_id))
-
-    def put(self, request, user_id: int):
-        user = User.objects.filter(pk=user_id).first()
-        if not user:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        if not isinstance(request.data, dict):
-            return Response({'detail': '格式应为 {语言: {video: [...], ...}}'}, status=status.HTTP_400_BAD_REQUEST)
-        langs = {lg.slug: lg for lg in Language.objects.all()}
-        rows = set()
-        for slug, kinds in request.data.items():
-            if slug not in langs or not isinstance(kinds, dict):
-                continue
-            for kind, dirs in kinds.items():
-                if kind not in MEDIA_KINDS or not isinstance(dirs, list):
-                    continue
-                rows.update((slug, kind, d.strip().strip('/')) for d in dirs if isinstance(d, str) and d.strip())
-        MediaPermission.objects.filter(user=user).delete()
-        MediaPermission.objects.bulk_create(
-            MediaPermission(user=user, language=langs[s], media_type=k, root_dir=d) for s, k, d in sorted(rows)
-        )
-        return Response(_perms_of(user_id))
-
-
 # ── 受保护的媒体文件 ──────────────────────────────────────────────────────────
 
 def _user_from_request(request):
@@ -253,7 +196,7 @@ def _stream(path: Path, request) -> HttpResponse:
 
 
 class ProtectedMediaView(View):
-    """/media/languages/<slug>/<videos|audios|files>/<目录...>/<文件>：校验登录与目录权限。"""
+    """/media/languages/<slug>/<videos|audios|files>/<目录...>/<文件>：登录即可访问（未启用的语言仅管理员）。"""
 
     def get(self, request, filepath: str):
         user = _user_from_request(request)
@@ -261,21 +204,13 @@ class ProtectedMediaView(View):
             return HttpResponse(status=401)
 
         parts = filepath.strip('/').split('/')
-        # 权限按路径前缀判断，必须先排除 . / .. / 空段，否则「有权目录/../无权目录」可绕过
+        # 排除 . / .. / 空段，防止路径穿越
         if any(p in ('', '.', '..') or '\\' in p for p in parts):
             return HttpResponse(status=404)
         if len(parts) < 5 or parts[0] != 'languages' or parts[2] not in KIND_BY_DIR:
             return HttpResponse(status=404)
-        slug, kind, rel_dirs = parts[1], KIND_BY_DIR[parts[2]], parts[3:-1]
-
-        if not user.is_staff:
-            language = Language.objects.filter(slug=slug, is_active=True).first()
-            if not language:
-                return HttpResponse(status=404)
-            allowed = set(MediaPermission.objects.filter(user=user, language=language, media_type=kind)
-                          .values_list('root_dir', flat=True))
-            if not path_allowed(rel_dirs, allowed):
-                return HttpResponse(status=403)
+        if not user.is_staff and not Language.objects.filter(slug=parts[1], is_active=True).exists():
+            return HttpResponse(status=404)
 
         root = Path(settings.MEDIA_ROOT).resolve()
         full = (root / filepath).resolve()

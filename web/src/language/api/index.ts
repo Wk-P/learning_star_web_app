@@ -44,36 +44,12 @@ export interface MediaFolder {
   items: MediaItem[]
 }
 
-export interface TreeNode {
-  path: string
-  label: string
-  children: TreeNode[]
-}
-
-export type KindDirs = Record<MediaKind, string[]>
-/** {语言 slug: {video: [...], audio: [...], file: [...]}} */
-export type PermissionMap = Record<string, KindDirs>
-
 export const languageApi = {
   categories() {
     return request<LanguageCategory[]>('/languages/')
   },
   media(slug: string, kind: MediaKind) {
     return request<MediaFolder[]>(`/languages/${encodeURIComponent(slug)}/${kind}/`)
-  },
-  myPermissions() {
-    return request<PermissionMap>('/languages/me/permissions/')
-  },
-
-  // ── 管理员：权限 ──
-  permissionTree() {
-    return request<Record<string, Record<MediaKind, TreeNode[]>>>('/languages/permissions/tree/')
-  },
-  userPermissions(userId: number) {
-    return request<PermissionMap>(`/languages/permissions/users/${userId}/`)
-  },
-  setUserPermissions(userId: number, data: PermissionMap) {
-    return request<PermissionMap>(`/languages/permissions/users/${userId}/`, json('PUT', data))
   },
 
   // ── 管理员：分类与语言 ──
@@ -97,7 +73,6 @@ export const languageApi = {
   },
 }
 
-export const emptyKindDirs = (): KindDirs => ({ video: [], audio: [], file: [] })
 
 /** 从文件地址取扩展名（小写，不含点） */
 export function fileExt(url: string): string {

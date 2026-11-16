@@ -52,7 +52,8 @@ class Language(models.Model):
 
 
 class MediaPermission(models.Model):
-    """普通用户能看到的目录：某语言、某类资源下的顶层目录（或更深的子路径，用 / 分隔）。管理员不受限制。"""
+    """（已停用，2026-11-16 起登录用户可看全部资料；表与旧数据保留，便于以后恢复按目录授权）
+    普通用户能看到的目录：某语言、某类资源下的顶层目录（或更深的子路径，用 / 分隔）。"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='media_permissions')
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='permissions')
     media_type = models.CharField(max_length=10, choices=MEDIA_KIND_CHOICES)

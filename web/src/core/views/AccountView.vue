@@ -28,32 +28,6 @@
       </div>
     </section>
 
-    <!-- permissions -->
-    <section class="card">
-      <h2 class="section-title">语言学习 · 我的访问权限</h2>
-      <div v-if="loadingPerms" class="hint">加载中…</div>
-      <div v-else-if="auth.isAdmin" class="hint">管理员可以访问全部语言的全部内容。</div>
-      <div v-else-if="!permLanguages.length" class="hint">暂无权限。如果你刚注册，请联系管理员开通。</div>
-      <template v-else>
-        <div v-for="lang in permLanguages" :key="lang.slug" class="perm-lang">
-          <h3 class="perm-lang-name">{{ lang.name }}</h3>
-          <div v-for="tab in MEDIA_KINDS" :key="tab.key" class="perm-group">
-            <div class="perm-label">
-              <AppIcon :name="tab.icon" :size="15" class="perm-icon" />
-              {{ tab.label }}
-              <span class="perm-count" :class="{ active: lang.dirs[tab.key].length > 0 }">
-                {{ lang.dirs[tab.key].length }}
-              </span>
-            </div>
-            <div v-if="lang.dirs[tab.key].length === 0" class="perm-empty">暂无权限</div>
-            <ul v-else class="perm-list">
-              <li v-for="p in lang.dirs[tab.key]" :key="p" class="perm-chip">{{ p }}</li>
-            </ul>
-          </div>
-        </div>
-      </template>
-    </section>
-
     <!-- change password -->
     <section class="card">
       <h2 class="section-title">修改密码</h2>
@@ -106,7 +80,6 @@ import { useAuthStore } from '@/core/stores/auth'
 import { useRouter } from 'vue-router'
 import { accountsApi } from '@/core/api/accounts'
 import { errorDetail } from '@/core/api/http'
-import { languageApi, MEDIA_KINDS, emptyKindDirs, type PermissionMap } from '@/language/api'
 import { useLanguageStore } from '@/language/stores/languages'
 
 const auth = useAuthStore()
@@ -121,20 +94,6 @@ function logout() {
 
 const username = ref(auth.username)
 const initial = computed(() => (username.value || '?').charAt(0).toUpperCase())
-
-const perms = ref<PermissionMap>({})
-const loadingPerms = ref(true)
-
-// 有权限的语言（按后台排序；已删除的语言用 slug 兜底显示）
-const permLanguages = computed(() => {
-  const known = languages.languages.map((l) => l.slug)
-  const slugs = [...known.filter((s) => s in perms.value), ...Object.keys(perms.value).filter((s) => !known.includes(s))]
-  return slugs.map((slug) => ({
-    slug,
-    name: languages.bySlug(slug)?.name ?? slug,
-    dirs: { ...emptyKindDirs(), ...perms.value[slug] },
-  }))
-})
 
 const displayName = ref('')
 const savingName = ref(false)
@@ -159,12 +118,11 @@ async function saveDisplayName() {
 
 onMounted(async () => {
   try {
-    const [me, data] = await Promise.all([accountsApi.me(), languageApi.myPermissions(), languages.load()])
+    const me = await accountsApi.me()
     username.value = me.username
     displayName.value = me.display_name
-    perms.value = data
-  } finally {
-    loadingPerms.value = false
+  } catch {
+    // 读取失败时保留登录信息里的用户名
   }
 })
 
@@ -211,8 +169,6 @@ async function handleChangePassword() {
   padding-top: 1.5rem;
 }
 
-.perm-lang + .perm-lang { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-.perm-lang-name { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
 
 .card {
   background: var(--surface-1);
@@ -281,60 +237,6 @@ async function handleChangePassword() {
   margin-bottom: 1rem;
 }
 
-/* ── permissions ── */
-.perm-group {
-  margin-bottom: 1rem;
-}
-
-.perm-group:last-child { margin-bottom: 0; }
-
-.perm-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-}
-
-.perm-icon { opacity: 0.7; }
-
-.perm-count {
-  font-size: 0.7rem;
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-subtle);
-  font-weight: 700;
-}
-
-.perm-count.active {
-  background: var(--primary-dim);
-  color: var(--primary);
-}
-
-.perm-empty {
-  font-size: 0.82rem;
-  color: var(--text-subtle);
-  padding-left: 0.1rem;
-}
-
-.perm-list {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.perm-chip {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: var(--r-xl);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-}
 
 /* ── password form ── */
 .form {

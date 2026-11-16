@@ -15,7 +15,7 @@ pyproject.toml uv.lock .python-version   唯一的 Python 环境（Python 3.13 /
 backend/          Django 后端
   config/         settings、urls
   accounts/       统一账号：登录、注册、改密码、显示名称、用户管理
-  languages/      语言学习：分类、语言、媒体扫描、学习权限、受保护媒体 /media/
+  languages/      语言学习：分类、语言、媒体扫描、受保护媒体 /media/
   courses/        课程：科目、视频链接
 data/             数据库 db.sqlite3 与 media/（不进 git，部署不覆盖）
 web/              前端（Vue 3 + Vite）
@@ -38,7 +38,7 @@ data/media/languages/<语言标识>/audios/<目录...>/<音频名>.mp3
 data/media/languages/<语言标识>/files/<目录...>/<资料名>.pdf|.xlsx|.hwp|...
 ```
 
-第一层目录就是「学习权限」中可授权的单位。管理员不受限；普通用户只看到被授权的目录。
+登录用户可以看到全部已启用语言的全部资料（不再按目录开通权限）；未启用的语言只有管理员可见。
 
 ### 网址
 
@@ -76,7 +76,7 @@ API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`
 
 `setup` 执行 `uv sync`、安装前端依赖、由 `.env.example` 生成 `.env`（本地开 DEBUG）、迁移数据库，
 并创建本地测试账号：管理员 `dev_admin`、学员 `dev_user`（密码默认都是 `dev123456`，见 `.env` 的 `DEV_*`）。
-测试账号与线上导入的账号不重名；`setup`、`migrate`、`users` 每次都会把它们的密码重置为 `.env` 中的值，学员自动拥有本地全部学习权限。
+测试账号与线上导入的账号不重名；`setup`、`migrate`、`users` 每次都会把它们的密码重置为 `.env` 中的值。
 前端 :5173 把 `/api`、`/media` 代理到后端 :8000。不带参数运行脚本会列出全部用法。
 
 ### 跨平台字符约定

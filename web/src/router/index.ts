@@ -29,7 +29,8 @@ const legacy: RouteRecordRaw[] = [
   { path: '/admin/audio', redirect: '/admin/language/resources' },
   { path: '/admin/pdf', redirect: '/admin/language/resources' },
   { path: '/admin/topik/:kind', redirect: '/admin/language/resources' },
-  { path: '/admin/permissions', redirect: '/admin/language/permissions' },
+  { path: '/admin/permissions', redirect: '/admin/users' },
+  { path: '/admin/language/permissions', redirect: '/admin/users' },   // 学习权限已取消：登录用户可看全部资料
   { path: '/admin/subjects', redirect: '/admin/course/subjects' },
   { path: '/admin/roadmap', redirect: '/admin' },
   { path: '/admin/course/roadmap', redirect: '/admin' },
@@ -89,7 +90,6 @@ const router = createRouter({
         { path: 'users',                name: 'admin-users',              component: () => import('@/core/views/AdminUsersView.vue'),         meta: { title: '用户管理' } },
         { path: 'language/languages',   name: 'admin-language-languages', component: () => import('@/language/admin/LanguagesView.vue'),      meta: { title: '语言学习 · 分类与语言' } },
         { path: 'language/resources',   name: 'admin-language-resources', component: () => import('@/language/admin/ResourcesView.vue'),      meta: { title: '语言学习 · 学习资源' } },
-        { path: 'language/permissions', name: 'admin-language-perms',     component: () => import('@/language/admin/PermissionsView.vue'),    meta: { title: '语言学习 · 学习权限' } },
         {
           path: 'course',
           component: CourseScope,

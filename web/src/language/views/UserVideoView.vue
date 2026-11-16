@@ -23,7 +23,7 @@
       v-else-if="subCategories.length === 0 && currentVideos.length === 0"
       icon="video"
       title="这里还没有可访问的视频"
-      desc="如果你刚注册，可能需要管理员为你开通学习权限，开通后刷新页面即可看到。"
+      desc="这门语言的这类资料还没有上传，换个栏目看看吧。"
     />
 
     <!-- category cards -->
