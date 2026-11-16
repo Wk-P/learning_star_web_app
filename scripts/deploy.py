@@ -8,7 +8,11 @@
     web            构建并部署前端
     nginx          安装 nginx 配置与 systemd 单元
     all            api → web → nginx
-    backup         在服务器上备份数据库（data/backups/），并下载一份到本地 _migration/backups/
+    backup [标签]  立即备份数据库与 .env（服务器 data/backups/，默认标签 manual，不自动清理），并下载到本地 data/remote-backups/
+
+自动备份：
+    nginx / all 会安装 systemd 定时器 learning-star-backup.timer：每天 03:30 备份，标签 auto，保留最近 14 份；
+    api / all 上传代码前先备份一次，标签 predeploy，保留最近 10 份。
 
 一次性（course + topik 合并为统一后端）：
     cutover        预览切换步骤；加 --yes 执行。旧服务停机时间约为导入数据 + 移动媒体目录（同盘 mv，秒级）
@@ -157,8 +161,18 @@ def render(text: str, cfg) -> str:
             .replace('{{USER}}', cfg['APP_USER']).replace('{{ENV_FILE}}', cfg['ENV_REMOTE']))
 
 
+def deployed_stamp() -> bytes:
+    try:
+        rev = subprocess.run(['git', 'log', '-1', '--format=%H %ci %s'], cwd=ROOT, capture_output=True,
+                             text=True, encoding='utf-8').stdout.strip()
+    except OSError:
+        rev = ''
+    return f'{rev or "unknown"}\ndeployed {time.strftime("%Y-%m-%d %H:%M:%S")}\n'.encode()
+
+
 def code_items() -> dict[str, Path | bytes]:
     return {
+        'DEPLOYED': deployed_stamp(),
         'backend': ROOT / 'backend',
         'pyproject.toml': ROOT / 'pyproject.toml',
         'uv.lock': ROOT / 'uv.lock',
@@ -171,6 +185,8 @@ def deploy_items(cfg) -> dict[str, Path | bytes]:
         'learning_star.conf': render((ROOT / 'deploy/nginx/learning_star.conf').read_text(encoding='utf-8'), cfg).encode(),
         'learning_star_proxy.conf': (ROOT / 'deploy/nginx/learning_star_proxy.conf').read_bytes(),
         f'{SERVICE}.service': render((ROOT / f'deploy/systemd/{SERVICE}.service').read_text(encoding='utf-8'), cfg).encode(),
+        f'{SERVICE}-backup.service': render((ROOT / f'deploy/systemd/{SERVICE}-backup.service').read_text(encoding='utf-8'), cfg).encode(),
+        f'{SERVICE}-backup.timer': (ROOT / f'deploy/systemd/{SERVICE}-backup.timer').read_bytes(),
     }
 
 
@@ -193,7 +209,7 @@ mkdir -p log data
 rm -rf backend.old
 if [ -d backend ]; then mv backend backend.old; fi
 mv .staging/backend backend
-cp .staging/pyproject.toml .staging/uv.lock .staging/.python-version .
+cp .staging/pyproject.toml .staging/uv.lock .staging/.python-version .staging/DEPLOYED .
 rm -rf .staging backend.old
 # 项目的 Python（.python-version）。服务器在国内：先用 npmmirror（同步及时），
 # 再试服务器自己配置的镜像（nju/tuna 常缺新版本），最后才走 GitHub（国内慢）
@@ -250,8 +266,10 @@ cd "$APP/.deploy"
 sudo mkdir -p /etc/nginx/snippets
 sudo cp learning_star_proxy.conf /etc/nginx/snippets/
 sudo cp learning_star.conf /etc/nginx/conf.d/learning_star.conf
-sudo cp "$SERVICE.service" /etc/systemd/system/
+sudo cp "$SERVICE.service" "$SERVICE-backup.service" "$SERVICE-backup.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
+sudo systemctl enable --now "$SERVICE-backup.timer" >/dev/null 2>&1
+echo "  自动备份：$(systemctl list-timers "$SERVICE-backup.timer" --no-legend | awk '{print "下次 "$1" "$2" "$3}')"
 sudo nginx -t
 sudo systemctl reload nginx
 '''
@@ -323,6 +341,7 @@ sudo -n true 2>/dev/null && echo '  sudo 免密可用' || echo '  sudo 需要密
 
 def cmd_api(cfg, _args) -> None:
     require_merged(cfg)
+    predeploy_backup(cfg)
     push_code(cfg)
     restart(cfg)
 
@@ -361,6 +380,7 @@ def cmd_env_pull(cfg, args) -> None:
 def cmd_all(cfg, args) -> None:
     require_merged(cfg)
     push_env_if_present(cfg)
+    predeploy_backup(cfg)
     push_code(cfg)
     build_web(cfg)
     push_web(cfg)
@@ -369,26 +389,31 @@ def cmd_all(cfg, args) -> None:
 
 
 BACKUP = r'''
-mkdir -p "$APP/data/backups"
-out="$APP/data/backups/db-$(date +%Y%m%d-%H%M%S).sqlite3"
-"$APP/.venv/bin/python" - "$APP/data/db.sqlite3" "$out" <<'PY'
-import sqlite3, sys
-s = sqlite3.connect(f'file:{sys.argv[1]}?mode=ro', uri=True); d = sqlite3.connect(sys.argv[2]); s.backup(d); d.close()
-PY
-echo "$out"
+cd "$APP/backend"
+../.venv/bin/python manage.py backup_db --label "$LABEL" --keep "$KEEP"
 '''
 
 
-def cmd_backup(cfg, _args) -> None:
+def remote_backup(cfg, label: str, keep: int = 0) -> str:
+    out = remote(cfg, BACKUP, capture=True, APP=cfg['APP_DIR'], LABEL=label, KEEP=str(keep))
+    return out.strip().splitlines()[-1]
+
+
+@step('部署前备份')
+def predeploy_backup(cfg) -> None:
+    print(f'  {remote_backup(cfg, "predeploy", keep=10)}')
+
+
+def cmd_backup(cfg, args) -> None:
     require_merged(cfg)
-    path = remote(cfg, BACKUP, capture=True, APP=cfg['APP_DIR']).strip().splitlines()[-1]
-    local = ROOT / '_migration' / 'backups' / Path(path).name
+    path = remote_backup(cfg, args[0] if args else 'manual')
+    local = ROOT / 'data' / 'remote-backups' / Path(path).name
     local.parent.mkdir(parents=True, exist_ok=True)
     with open(local, 'wb') as f:
         r = subprocess.run(ssh_base(cfg) + [f'cat {shlex.quote(path)}'], stdout=f)
     if r.returncode != 0:
         die('下载失败')
-    print(f'服务器：{path}\n本地：{local}')
+    print(f'服务器：{path}\n本地：  {local}（{local.stat().st_size / 1024:.0f} KB）')
 
 
 # ── 一次性：合并切换 ──────────────────────────────────────────────────────────

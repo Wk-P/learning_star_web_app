@@ -120,3 +120,4 @@ deploy/            nginx、systemd（单服务 learning-star）、env 模板
 - 2026-11-16 deploy.py 加 main 守卫：上传代码的命令只能在 main、干净、与 origin/main 一致时执行；merge 分支由用户手动合并后删除
 - 2026-11-16 线上 .env 改为本地维护（deploy/.env.production，不进 git），deploy.py env / all / cutover 上传到 ENV_REMOTE；settings 支持 ENV_FILE；env-pull 拉取服务器现有 .env
 - 2026-11-16 切换完成。线上核对：用户 5、权限 28、科目 9、视频链接 52；媒体 videos 82G / audios 876M / files 122M 已在 data/media/languages/ko/；未登录 API 与媒体均 401。服务器 Python 改由 npmmirror 安装，依赖经清华源（uv export + uv pip install）
+- 2026-11-16 停用 player2（xet-server :3000，无 nginx 转发、30 天无请求；disable，文件保留）。切换后立即备份 data/backups/learning-star-20261116-111848-post-cutover.tar.gz（本地副本 data/remote-backups/）。新增 manage.py backup_db 与 systemd 定时器 learning-star-backup.timer（每天 03:30，auto 保留 14）；api/all 部署前自动备份（predeploy 保留 10）；部署写入 DEPLOYED 记录代码版本

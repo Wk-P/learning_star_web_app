@@ -97,7 +97,8 @@ API 统一在 `/api/` 下：`auth/`（令牌）、`accounts/`、`languages/`、`
 | 只读检查 | `uv run scripts/deploy.py check` |
 | 部署后端 / 前端 / nginx 与 systemd | `uv run scripts/deploy.py api` / `web` / `nginx` |
 | 全部 | `uv run scripts/deploy.py all` |
-| 备份线上数据库（并下载到本地） | `uv run scripts/deploy.py backup` |
+| 立即备份线上数据库与 .env（并下载到本地 data/remote-backups/） | `uv run scripts/deploy.py backup` |
+| 自动备份 | 每天 03:30（保留 14 份）+ 每次部署代码前（保留 10 份），在服务器 `data/backups/`；不含媒体文件 |
 
 服务器布局：`~/learning_star/`（`backend/`、`.venv/`、`web/dist/`、`data/`、`.env`、`log/`），
 systemd 服务 `learning-star`（gunicorn 127.0.0.1:8010），nginx 80 端口统一入口。

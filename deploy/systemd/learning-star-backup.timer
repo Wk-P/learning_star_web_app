@@ -1,0 +1,11 @@
+[Unit]
+Description=Learning Star daily backup at 03:30
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# 关机错过时间点时，开机后补做一次
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

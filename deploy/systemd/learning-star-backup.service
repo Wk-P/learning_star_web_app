@@ -1,0 +1,10 @@
+[Unit]
+Description=Learning Star daily backup (database + .env)
+
+[Service]
+Type=oneshot
+User={{USER}}
+WorkingDirectory={{APP_DIR}}/backend
+Environment=ENV_FILE={{ENV_FILE}}
+# 自动备份标签 auto，只保留最近 14 份；手动备份（deploy.py backup）不受影响
+ExecStart={{APP_DIR}}/.venv/bin/python manage.py backup_db --label auto --keep 14
