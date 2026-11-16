@@ -390,7 +390,17 @@ def cmd_all(cfg, args) -> None:
 
 BACKUP = r'''
 cd "$APP/backend"
-../.venv/bin/python manage.py backup_db --label "$LABEL" --keep "$KEEP"
+if [ -f accounts/management/commands/backup_db.py ]; then
+  ../.venv/bin/python manage.py backup_db --label "$LABEL" --keep "$KEEP"
+else
+  # 服务器上的代码还没有 backup_db（首次部署它之前）：直接用 SQLite 在线备份
+  B="$APP/data/backups"; T=$(mktemp -d); umask 077; mkdir -p "$B"
+  ../.venv/bin/python -c 'import sqlite3,sys; s=sqlite3.connect(f"file:{sys.argv[1]}?mode=ro",uri=True); d=sqlite3.connect(sys.argv[2]); s.backup(d); d.close()' \
+    "$APP/data/db.sqlite3" "$T/db.sqlite3"
+  [ -f "$ENV_FILE" ] && cp "$ENV_FILE" "$T/.env"
+  out="$B/learning-star-$(date +%Y%m%d-%H%M%S)-$LABEL.tar.gz"
+  tar -czf "$out" -C "$T" .; rm -rf "$T"; echo "$out"
+fi
 '''
 
 
