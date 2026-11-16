@@ -18,7 +18,7 @@ def env_list(name: str, default: str = '') -> list[str]:
 
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-SECRET_KEY = os.environ.get('SECRET_KEY') or ('django-insecure-dev-only' if DEBUG else None)
+SECRET_KEY = os.environ.get('SECRET_KEY') or ('django-insecure-dev-only-key-at-least-32-bytes-long' if DEBUG else None)
 if not SECRET_KEY:
     raise RuntimeError('缺少 SECRET_KEY（见 .env.example）')
 
